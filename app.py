@@ -21,17 +21,37 @@ app = Flask(__name__)
 
 # Global Variables
 last_change = '-'
+html_header = """<html>
+<head>
+<link rel="stylesheet" href="static/styles/stylesheet.css">
+</head>"""
 
 ###############################################################################
 # Routes
 ###############################################################################
 
+# General landing page for clients
 @app.route('/')
 def index():
+  return render_template('index.html')
+
+# After clicking a button
+@app.route('/', methods=['POST'])
+def index_post():
+  # Depending on which button was clicked forward to checkin or checkout
+  if request.form['action'] == 'Check-In':
+    return redirect(url_for('checkin'))
+  elif request.form['action'] == 'Check-Out':
+    return redirect(url_for('checkout'))
+  else:
+    return render_template('index.html')
+
+@app.route('/mungg')
+def admin():
   global last_change
   no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected = count_parcels()
 
-  return render_template('index.html', 
+  return render_template('mungg.html', 
       last_change=last_change,
       no_parcels_total=no_parcels_total, no_parcels_tobeassigned=no_parcels_tobeassigned, no_parcels_tobesorted=no_parcels_tobesorted, no_parcels_sorted=no_parcels_sorted, no_parcels_collected=no_parcels_collected)
 
@@ -64,7 +84,7 @@ def get_parcels():
   for row in results:
     this_parcel_id = row[0]
     parcel_table_html += '<tr>'+' '.join(['<td>'+str(item)+'</td>' for item in row]) + f'<td><a href="search/{this_parcel_id}">Edit</a></td></tr>'
-  parcel_table_html += '</table><br><br><a href="/">Back to start</a>'
+  parcel_table_html += '</table><br><br><a href="/mungg">Back to start</a>'
   
   return parcel_table_html
 
@@ -80,7 +100,12 @@ def shelf(shelf_no):
   html = get_shelf(shelf_no)  
   return html
 
-# Initialize database (Deletes all existing records!)
+# Initialize database (Deletes all existing records!) STEP 1
+@app.route('/resetonlyifyoureallyreallywant')
+def reset():
+  return "WARNING!<br>IF YOU CONTINUE THIS WILL RESET THE DATABASE AND DELETE ALL DATA!<br><a href='initdb'>RESET DATABASE</a>"
+
+# Initialize database (Deletes all existing records!) STEP 2
 @app.route('/initdb')
 def initdb():
   global last_change
@@ -88,7 +113,7 @@ def initdb():
   db_init_table_parcels()
   db_init_table_client_log()
   last_change = "Initialized database!"
-  return 'Re-initialized database<br><br><a href="/">Back to start</a>'
+  return 'Re-initialized database<br><br><a href="/mungg">Back to start</a>'
 
 # Create new parcel by entering all data by hand
 @app.route('/newparcel')
@@ -475,7 +500,8 @@ def client_search_post():
   print(f'{results}')
 
   unsorted_parcels = 0
-  html = html_header
+  global html_header
+  html = html_header + "\n<body>\n"
   if results == []:
     html += f'Sorry, there are no parcels for einheit {einheit_id}'
   else:
@@ -492,7 +518,7 @@ def client_search_post():
       # Report a shelf only once
       elif shelf_list.count(shelf_selected) == 1 and shelf_selected < SHELF_MAX:
         html += f'Shelf #{shelf_selected}<br>'
-  html += '<br><br><a href="/">go back</a>'
+  html += '<br><br><a href="checkin">Restart</a></body></html>'
 
   return html
 
@@ -560,7 +586,8 @@ def checkout_parcel_post(client_id):
     # Direct to this route again
     return redirect(url_for('checkout_parcel', client_id=client_id))
   elif request.form['action'] == 'Done':
-    return 'Finished checking out parcels<br><br><a href="/">go home</a>'
+    global html_header
+    return html_header + "\n<body>\n" + 'Finished checking out parcels<br><br><a href="checkout">Restart</a></body></html>'
   else:
     print("ERROR: Unknown submit name")
   return redirect(url_for('index'))
@@ -586,7 +613,7 @@ def client_log():
   for row in results:
     this_parcel_id = row[0]
     html += f'<tr><td>{results.index(row)}</td>'+' '.join(['<td>'+str(item)+'</td>' for item in row])
-  html += '</table><br><br><a href="/">Back to start</a>'
+  html += '</table><br><br><a href="/mungg">Back to start</a>'
   
   return html
 
