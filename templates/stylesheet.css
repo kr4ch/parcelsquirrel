@@ -1,0 +1,55 @@
+
+
+* {
+  font-family:Arial;
+  font-size:25px;
+}
+
+body {
+  background-color: #FFEB00;
+  background-image: url(mova.jpg);
+  background-repeat: no-repeat;
+background-position: 92% 8%;
+  background-size: 30%;
+  margin-top: 5%;
+  margin-left: 15%;
+}
+
+h1 {
+    color: #55BEFF;
+    font-size:50px;
+    margin-bottom: 5%;
+}
+
+.movaFormularTitel {
+  font-size: 30px;
+  margin-bottom: 2px;
+}
+
+.movaFormular {
+	width: 40%;
+  height: 12%;
+	border: 2px solid #55BEFF;
+  font-size: 30px;
+}
+
+.movaButton {
+	background-color:#55BEFF;
+	border-radius:28px;
+	border:2px solid #55BEFF;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+
+	padding:2% 5%;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #2f6627;
+  margin-top: 5%;
+}
+.movaButton:hover {
+	background-color:#275168;
+}
+.movaButton:active {
+	position:relative;
+	top:1px;
+}
