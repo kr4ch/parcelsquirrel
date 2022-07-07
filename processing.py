@@ -87,7 +87,7 @@ def get_shelves():
 
   global html_header
   html = html_header
-  html += '<body><h1>Shelf Overview</h1><a href="/">Back to start</a><br>'
+  html += '<body><h1>Shelf Overview</h1><a href="/mungg>Back to start</a><br>'
   html += f'<table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
   html += f'<tr><th>{parcels_count_in_shelves_30} Parcels</th><th>{parcels_count_in_shelves_45} Parcels</th><th>{parcels_count_in_shelves_90} Parcels</th></tr>'
   html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {min(SHELF_2_LIST)} - {max(SHELF_2_LIST)}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
@@ -158,7 +158,7 @@ def get_shelf(shelf_no):
 
   global html_header
   html = html_header
-  html += '<body><h1>Shelf Overview</h1><a href="/">Back to start</a><br><a href="/shelves">Back to shelf overview</a><br>'
+  html += '<body><h1>Shelf Overview</h1><a href="/mungg>Back to start</a><br><a href="/shelves">Back to shelf overview</a><br>'
   html += f'<h2>Shelf #{shelf}</h2>'
   html += f'<table><tr><th>Width</th><td>{int(shelf_dim/10)} cm</td></tr>'
   html += f'<tr><th>Height</th><td>{int(SHELF_HEIGHT/10)} cm</td></tr>'
@@ -207,7 +207,7 @@ def fix_parcels_missing_einheit():
   for row in results:
     this_parcel_id = row[0]
     parcel_table_html += '<tr>'+' '.join(['<td>'+str(item)+'</td>' for item in row]) + f'<td><a href="search/{this_parcel_id}">Edit</a></td></tr>'
-  parcel_table_html += '</table><br><br><a href="/">Back to start</a>'
+  parcel_table_html += '</table><br><br><a href="/mungg>Back to start</a>'
 
   return parcel_table_html
 
@@ -285,7 +285,7 @@ def fix_parcels_missing_einheit():
 #    html_string += f'ID: {assigned_parcel_id[i]}: Shelf {assigned_shelf[i]}<br>'
 #  if failed_count > 0:
 #    html_string += f'<br><b>FAILED</b> to assign shelf to {failed_count} parcels:' + '<br>'.join(failed_parcel_id)
-#  html_string += '<br><br><a href="/">Back to start</a>'
+#  html_string += '<br><br><a href="/mungg>Back to start</a>'
 #
 #  summary_string = f"Assigned {assigned_count} parcels to a shelf."
 #  if failed_count > 0:
@@ -502,7 +502,7 @@ def assign_shelf_to_new_parcels_fillup():
     html_string += f'ID: {assigned_parcel_id[i]}: Shelf {assigned_shelf[i]}<br>'
   if failed_count > 0:
     html_string += f'<br><b>FAILED</b> to assign shelf to {failed_count} parcels:' + '<br>'.join(failed_parcel_id)
-  html_string += '<br><br><a href="/">Back to start</a>'
+  html_string += '<br><br><a href="/mungg>Back to start</a>'
 
   summary_string = f"Assigned {assigned_count} parcels to a shelf."
   if failed_count > 0:
@@ -611,7 +611,7 @@ def import_parcels_to_db(parcel_dict):
   html_imported_parcels += f"FAIL \t({parcels_skipped_count}) have been skipped (eg. because of duplicate parcel id)<br><br>List of fails:"
   for i in range(len(parcels_skipped_list)):
     html_imported_parcels += f'<br>\t{parcels_skipped_list[i]} (Cause: {parcels_skipped_cause[i]})'
-  html_imported_parcels += f"<br><br>List of successes:<br>" + '<br>\t'.join(parcels_imported_list) + '<br><br><a href="/">Back to start</a>'
+  html_imported_parcels += f"<br><br>List of successes:<br>" + '<br>\t'.join(parcels_imported_list) + '<br><br><a href="/mungg>Back to start</a>'
 
   import_parcels_string = f"Imported parcels from Excel Sheet. Of a total {parcel_count} parcels succesfully imported {parcels_imported_count}."
   if parcels_skipped_count > 0:

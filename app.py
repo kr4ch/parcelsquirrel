@@ -281,7 +281,7 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
   print(record)
   
   cursor.close()
-  return f'SUCCESS! Edited: {record}<br><br><a href="/">Home</a>'
+  return f'SUCCESS! Edited: {record}<br><br><a href="/mungg">Home</a>'
 
 #############################################
 # Upload / Download / Export Functionality
@@ -459,7 +459,7 @@ def sort_edit_post(parcel_id, shelf_proposed, shelf_selected, first_name, last_n
   store_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
   db_insert_into_table('client_log', ['client_id', 'store_time', 'parcel_id'], [f'{client_id}', f'"{store_time}"', f'"{parcel_id}"'])
 
-  #return f'SUCCESS! Sorted parcel {record} to shelf {shelf_selected}. Proposed shelf was {shelf_proposed}<br><br><a href="/">Home</a>'
+  #return f'SUCCESS! Sorted parcel {record} to shelf {shelf_selected}. Proposed shelf was {shelf_proposed}<br><br><a href="/mungg>Home</a>'
   return redirect(url_for('index'))
 
 ###############################################################################
@@ -545,7 +545,7 @@ def checkout_parcel(client_id):
 def checkout_parcel_post(client_id):
   parcel_id = request.form.get('parcel_id')
   if parcel_id == '':
-    return 'Finished checking out parcels<br><br><a href="/">go home</a>'
+    return 'Finished checking out parcels<br><br><a href="/mungg>go home</a>'
   ret = test_parcel_id_valid(parcel_id)
   if ret: return ret
 
