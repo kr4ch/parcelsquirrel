@@ -1,9 +1,9 @@
-# mungg
+# mova Parcel Squirrel
 
-Test Repo for BULA Post Sortier App
+Application to sort parcels and display information. To be used in 2022 <a href="https://www.mova.ch/bula">mova</a>
 
 This is a docker repository that is automatically built and pushed to docker hub, when a version is tagged as `v*.*.*`
-https://hub.docker.com/r/krach/mungg
+https://hub.docker.com/r/krach/parcelsquirrel
 
 ```
  git tag -a v0.0.2
@@ -18,7 +18,7 @@ Currently contains:
 
 # Testing the application online
 Click this button to test it with "play-with-docker.com":
-<a href="https://labs.play-with-docker.com/?stack=https://raw.githubusercontent.com/kr4ch/mungg/main/docker-compose.test.yml"><img src="https://cdn.rawgit.com/play-with-docker/stacks/cff22438/assets/images/button.png" alt="Try in PWD"></a>
+<a href="https://labs.play-with-docker.com/?stack=https://raw.githubusercontent.com/kr4ch/parcelsquirrel/main/docker-compose.test.yml"><img src="https://cdn.rawgit.com/play-with-docker/stacks/cff22438/assets/images/button.png" alt="Try in PWD"></a>
 * Click "Start" (at first use you must "Login" -> "Docker")
 * Wait a few minutes
 * Click "Close" (if close button does not work, click on the blue banner and hit "Esc")
@@ -29,9 +29,9 @@ Click this button to test it with "play-with-docker.com":
 # Testing the application locally
 Install "Docker Desktop" and run it locally:
 ```
-docker pull krach/mungg
-git clone git@github.com:kr4ch/mungg.git
-cd mungg
+docker pull krach/parcelsquirrel
+git clone git@github.com:kr4ch/parcelsquirrel.git
+cd parcelsquirrel
 
 # IMPORTANT!! The following 2 lines are only needed when running on Ubuntu
 # Replace <YOURUSERNAME>
