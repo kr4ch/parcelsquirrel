@@ -510,8 +510,8 @@ def assign_shelf_to_new_parcels_fillup():
 
   return html_string, summary_string
 
-
-def import_parcels_to_db(parcel_dict):
+# Keep current database and add parcels from Post
+def upload_post_parcels_to_db(parcel_dict):
   # Keep a list of which parcels where imported into the db and which were skipped
   parcels_imported_count = 0
   parcels_imported_list  = []
@@ -616,6 +616,96 @@ def import_parcels_to_db(parcel_dict):
   import_parcels_string = f"Imported parcels from Excel Sheet. Of a total {parcel_count} parcels succesfully imported {parcels_imported_count}."
   if parcels_skipped_count > 0:
     import_parcels_string += f" {parcels_skipped_count} failed to import!"
+
+  return html_imported_parcels, import_parcels_string
+
+# Reset database and Import parcels. Excel file was previously exported to excel
+def import_parcels_to_db(parcel_dict):
+  parcels_imported_count = 0
+
+  # Reset the parcel database. Keep log
+  db_init()
+  db_init_table_parcels()
+
+  # We need all columns in the Excel sheet to be able to process it. Check and abort if not all are available
+  required_keys = [False,False,False,False,False,False,False,False,False,False]
+  for key in parcel_dict:
+    if key   == 'parcel_id':      required_keys[0] = True # Parcel ID
+    elif key == 'first_name':     required_keys[1] = True # First Name
+    elif key == 'last_name':      required_keys[2] = True # Last Name / Vulgo
+    elif key == 'einheit_id':     required_keys[3] = True # Einheit ID
+    elif key == 'shelf_proposed': required_keys[4] = True # Shelf proposed
+    elif key == 'shelf_selected': required_keys[5] = True # Shelf selected
+    elif key == 'dim_1':          required_keys[6] = True # Dimension 1 in mm
+    elif key == 'dim_2':          required_keys[7] = True # Dimension 2 in mm
+    elif key == 'dim_3':          required_keys[8] = True # Dimension 3 in mm
+    elif key == 'weight_g':       required_keys[9] = True # Weight in gram
+    else: print(f"WARNING: Unknown column in table: {key}")
+  
+  if not all(required_keys):
+    return "<h1>ERROR: Missing column in Excel sheet!<h1>", ""
+
+  print(parcel_dict)
+
+  parcel_count = len(parcel_dict['parcel_id'])
+
+  for i in range(parcel_count):
+    # If cell is empty, it will give us 'NaN'. Convert it to 0.
+    # TODO: Generate warning if we get a NaN!
+    parcel_id       = str(parcel_dict['parcel_id'][i] if isinstance(parcel_dict['parcel_id'][i], int) else 0)                  # Expect int
+    first_name      = str(parcel_dict['first_name'][i])                                                                 # Expect string
+    last_name       = str(parcel_dict['last_name'][i])                                                                  # Expect string
+    einheit_id      = str(parcel_dict['einheit_id'][i] if isinstance(parcel_dict['einheit_id'][i], int) else 0)         # Expect string
+    shelf_proposed  = str(int(parcel_dict['shelf_proposed'][i]) if not isnan(parcel_dict['shelf_proposed'][i]) else 0)  # Expect float
+    shelf_selected  = str(int(parcel_dict['shelf_selected'][i]) if not isnan(parcel_dict['shelf_selected'][i]) else 0)  # Expect float
+    dim_1           = str(int(parcel_dict['dim_1'][i]) if not isnan(parcel_dict['dim_1'][i]) else 0)                    # Expect float
+    dim_2           = str(int(parcel_dict['dim_2'][i]) if not isnan(parcel_dict['dim_2'][i]) else 0)                    # Expect float
+    dim_3           = str(int(parcel_dict['dim_3'][i]) if not isnan(parcel_dict['dim_3'][i]) else 0)                    # Expect float
+    weight_g        = str(parcel_dict['weight_g'][i] if isinstance(parcel_dict['weight_g'][i], int) else 0)             # Expect int
+    
+    # Test if data is valid. Eg. if parcel_id is correct format
+    ret = test_parcel_id_valid(parcel_id)
+    if ret: return ret, ""
+
+    # Test if parcel_id already exists, we dont want any duplicates
+    mydb = mysql.connector.connect(
+      host="mysqldb",
+      user="root",
+      password="secret",
+      database="inventory"
+    )
+    cursor = mydb.cursor()
+
+    if not checkTableExists(mydb, "parcels"):
+        return f'ERROR: table "parcels" does not exist!', ""
+
+    # Now insert the new parcel into the db
+    sql_cmd =  f'INSERT INTO '\
+                  'parcels '\
+                    '(parcel_id, first_name, last_name, einheit_id, shelf_proposed, shelf_selected, dim_1, dim_2, dim_3, weight_g) '\
+                'VALUES ('\
+                  f'"{parcel_id}", '\
+                  f'"{first_name}", '\
+                  f'"{last_name}", '\
+                  f'"{einheit_id}", '\
+                  f'{shelf_proposed}, '\
+                  f'{shelf_selected}, '\
+                  f'{dim_1}, '\
+                  f'{dim_2}, '\
+                  f'{dim_3}, '\
+                  f'{weight_g})'
+    print(sql_cmd)
+    cursor.execute(sql_cmd)
+    mydb.commit()
+    cursor.close()
+
+    parcels_imported_count += 1
+
+  html_imported_parcels = "<h1>DONE reset DB and importing parcels from Excel upload</h1><br>"
+  html_imported_parcels += f"TOTAL \t({parcel_count}) parcels found in Excel file<br>"
+  html_imported_parcels += f"SUCCESS \t({parcels_imported_count}) have been imported<br>"
+
+  import_parcels_string = f"Reset DB and imported parcels from Excel Sheet. Of a total {parcel_count} parcels succesfully imported {parcels_imported_count}."
 
   return html_imported_parcels, import_parcels_string
 

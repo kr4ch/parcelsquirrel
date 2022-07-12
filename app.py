@@ -287,10 +287,32 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
 # Upload / Download / Export Functionality
 #############################################
 
-@app.route("/upload", methods=['GET', 'POST'])
-def upload_file():
+# Upload of Excel as specified by Swiss Post
+@app.route("/upload_post", methods=['GET', 'POST'])
+def upload_post():
   global last_change
-  html = 'ERROR: Unable to upload file'
+  html = 'ERROR: Unable to upload file. WARNING: Can only work with Excel coming from Swiss Post! Not with previously exported file!'
+  if request.method == 'POST':
+    print(request.files['file'])
+    f = request.files['file']
+    data_xls = pd.read_excel(f)
+    html, string = upload_post_parcels_to_db(data_xls.to_dict())
+    last_change = string
+    return html
+  return '''
+  <!doctype html>
+  <title>Upload an excel file coming from Swiss Post</title>
+  <h1>Excel file upload (xls, xlsx, xlsm, xlsb, odf, ods or odt)</h1>
+  <form action="" method=post enctype=multipart/form-data>
+  <p><input type=file name=file><input type=submit value=Upload>
+  </form>
+  '''
+
+# Import Excel that was Exported before (see /export)
+@app.route("/import", methods=['GET', 'POST'])
+def import_excel():
+  global last_change
+  html = 'ERROR: Unable to import file. WARNING: Can only work with previously EXPORTED file! Not with the file coming from Swiss Post!'
   if request.method == 'POST':
     print(request.files['file'])
     f = request.files['file']
@@ -300,13 +322,13 @@ def upload_file():
     return html
   return '''
   <!doctype html>
-  <title>Upload an excel file</title>
-  <h1>Excel file upload (xls, xlsx, xlsm, xlsb, odf, ods or odt)</h1>
+  <title>Import an excel file that was previously exported</title>
+  <b>WARNING: This will delete all parcels that are currently in the database!</b>
+  <h1>Reset DB and import file (xls, xlsx, xlsm, xlsb, odf, ods or odt)</h1>
   <form action="" method=post enctype=multipart/form-data>
   <p><input type=file name=file><input type=submit value=Upload>
   </form>
   '''
-
 @app.route("/export", methods=['GET'])
 def export_records():
   return download_tables_as_xlsx(['parcels', 'client_log'], 'bula_post_parcels.xlsx')
