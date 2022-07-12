@@ -16,7 +16,7 @@ SHELF_2_LIST    = range(101,201) # 101..200
 SHELF_3_LIST    = range(201,301) # 201..300
 
 # Conservatism of the fillup sorting algorithm:
-PARCEL_AREA_RESERVE = 1.2                   # We need this factor more area in a shelf because parcels will not fit perfectly
+PARCEL_AREA_RESERVE = 1.1                   # We need this factor more area in a shelf because parcels will not fit perfectly
 REQ_SHELF_AREA      = 1/PARCEL_AREA_RESERVE # Shelf must be no more full than this to be considered for putting more parcels in
 
 SHELF_MAX = 5000 # Maximum number of shelves
@@ -87,7 +87,7 @@ def get_shelves():
 
   global html_header
   html = html_header
-  html += '<body><h1>Shelf Overview</h1><a href="/mungg>Back to start</a><br>'
+  html += '<body><h1>Shelf Overview</h1><a href="/mungg">Back to start</a><br>'
   html += f'<table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
   html += f'<tr><th>{parcels_count_in_shelves_30} Parcels</th><th>{parcels_count_in_shelves_45} Parcels</th><th>{parcels_count_in_shelves_90} Parcels</th></tr>'
   html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {min(SHELF_2_LIST)} - {max(SHELF_2_LIST)}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
@@ -158,7 +158,7 @@ def get_shelf(shelf_no):
 
   global html_header
   html = html_header
-  html += '<body><h1>Shelf Overview</h1><a href="/mungg>Back to start</a><br><a href="/shelves">Back to shelf overview</a><br>'
+  html += '<body><h1>Shelf Overview</h1><a href="/mungg">Back to start</a><br><a href="/shelves">Back to shelf overview</a><br>'
   html += f'<h2>Shelf #{shelf}</h2>'
   html += f'<table><tr><th>Width</th><td>{int(shelf_dim/10)} cm</td></tr>'
   html += f'<tr><th>Height</th><td>{int(SHELF_HEIGHT/10)} cm</td></tr>'
@@ -207,7 +207,7 @@ def fix_parcels_missing_einheit():
   for row in results:
     this_parcel_id = row[0]
     parcel_table_html += '<tr>'+' '.join(['<td>'+str(item)+'</td>' for item in row]) + f'<td><a href="search/{this_parcel_id}">Edit</a></td></tr>'
-  parcel_table_html += '</table><br><br><a href="/mungg>Back to start</a>'
+  parcel_table_html += '</table><br><br><a href="/mungg">Back to start</a>'
 
   return parcel_table_html
 
@@ -285,7 +285,7 @@ def fix_parcels_missing_einheit():
 #    html_string += f'ID: {assigned_parcel_id[i]}: Shelf {assigned_shelf[i]}<br>'
 #  if failed_count > 0:
 #    html_string += f'<br><b>FAILED</b> to assign shelf to {failed_count} parcels:' + '<br>'.join(failed_parcel_id)
-#  html_string += '<br><br><a href="/mungg>Back to start</a>'
+#  html_string += '<br><br><a href="/mungg">Back to start</a>'
 #
 #  summary_string = f"Assigned {assigned_count} parcels to a shelf."
 #  if failed_count > 0:
@@ -396,7 +396,7 @@ def assign_shelf_to_new_parcels_fillup():
         area_this_parcel = get_parcel_area(row[6], row[7], row[8])
         shelf_area_used += area_this_parcel
 
-      # Only consider shelf if at least xx empty (given by factor REQ_SHELF_AREA)
+      # Only consider this already used shelf if at least xx empty (given by factor REQ_SHELF_AREA)
       dim_this_shelf = get_dim_of_shelf(shelf_selected_einheit)
       if dim_this_shelf == -1:
         print(f"ERROR: unable to determine dimension of shelf {shelf_selected_einheit}")
@@ -447,10 +447,10 @@ def assign_shelf_to_new_parcels_fillup():
         failed_count  += 1
         break # Avoid infinite loop
       # Can we fit the remaining parcels in the smallest shelf?
-      if area_parcels_this_einheit < SHELF_1_DIM*SHELF_HEIGHT*PARCEL_AREA_RESERVE:
+      if area_parcels_this_einheit*PARCEL_AREA_RESERVE < SHELF_1_DIM*SHELF_HEIGHT:
         shelf_list = SHELF_1_LIST
         print("Need a 30cm shelf")
-      elif area_parcels_this_einheit < SHELF_2_DIM*SHELF_HEIGHT*PARCEL_AREA_RESERVE:
+      elif area_parcels_this_einheit*PARCEL_AREA_RESERVE < SHELF_2_DIM*SHELF_HEIGHT:
         shelf_list = SHELF_2_LIST
         print("Need a 45cm shelf")
       else:
@@ -502,7 +502,7 @@ def assign_shelf_to_new_parcels_fillup():
     html_string += f'ID: {assigned_parcel_id[i]}: Shelf {assigned_shelf[i]}<br>'
   if failed_count > 0:
     html_string += f'<br><b>FAILED</b> to assign shelf to {failed_count} parcels:' + '<br>'.join(failed_parcel_id)
-  html_string += '<br><br><a href="/mungg>Back to start</a>'
+  html_string += '<br><br><a href="/mungg">Back to start</a>'
 
   summary_string = f"Assigned {assigned_count} parcels to a shelf."
   if failed_count > 0:
@@ -611,7 +611,7 @@ def upload_post_parcels_to_db(parcel_dict):
   html_imported_parcels += f"FAIL \t({parcels_skipped_count}) have been skipped (eg. because of duplicate parcel id)<br><br>List of fails:"
   for i in range(len(parcels_skipped_list)):
     html_imported_parcels += f'<br>\t{parcels_skipped_list[i]} (Cause: {parcels_skipped_cause[i]})'
-  html_imported_parcels += f"<br><br>List of successes:<br>" + '<br>\t'.join(parcels_imported_list) + '<br><br><a href="/mungg>Back to start</a>'
+  html_imported_parcels += f"<br><br>List of successes:<br>" + '<br>\t'.join(parcels_imported_list) + '<br><br><a href="/mungg">Back to start</a>'
 
   import_parcels_string = f"Imported parcels from Excel Sheet. Of a total {parcel_count} parcels succesfully imported {parcels_imported_count}."
   if parcels_skipped_count > 0:
