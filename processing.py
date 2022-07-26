@@ -11,7 +11,7 @@ SHELF_3_DIM     = 900 # mm
 SHELF_HEIGHT    = 300 # mm. Assumed to be the same for all 3 shelf types
 SHELF_UNSORTED  = 0     # Virtual shelf to indicate new parcels that have not yet been sorted
 SHELF_COLLECTED = 50000 # Virtual shelf to indicate parcels that have already been collected
-SHELF_1_LIST    = range(2,101)   # 1..100
+SHELF_1_LIST    = range(3,101)   # 1..100
 SHELF_2_LIST    = range(101,201) # 101..200
 SHELF_3_LIST    = range(201,301) # 201..300
 
@@ -331,10 +331,16 @@ def assign_shelf_to_new_parcels_fillup():
     subresults = db_select_from_table_where_and('parcels', 'shelf_proposed', '0', 'einheit_id', einheit_id)
     print(subresults)
 
+    # Special case: all parcels for einheit "0" are NOT sorted into a shelf!
+    EINHEIT_EMPTY_LIST = ['0', 0]
+    if str(einheit_id) in EINHEIT_EMPTY_LIST:
+      # do nothing
+      continue # Sorted all parcels for einheit "empty"
+
     # Special case: all parcels for einheit "rover" go into a special shelf
-    EINHEIT_ROVER = 'rover'
-    SHELF_ROVER   = 1
-    if str(einheit_id) == EINHEIT_ROVER:
+    EINHEIT_ROVER_LIST = ['rover', 'Rover', 'r', 'R']
+    SHELF_ROVER        = 1
+    if str(einheit_id) in EINHEIT_ROVER_LIST:
       for row in subresults:
         parcel_id = row[0]
         print(f"Sorting parcel {parcel_id} for einheit {einheit_id} into shelf {SHELF_ROVER}")
@@ -347,6 +353,23 @@ def assign_shelf_to_new_parcels_fillup():
           assigned_parcel_id.append(str(parcel_id))
           assigned_shelf.append(str(SHELF_ROVER))
       continue # Sorted all parcels for einheit "rover"
+
+    # Special case: all parcels for einheit "bereich" go into a special shelf
+    EINHEIT_BEREICH_LIST = ['bereich', 'Bereich', 'b', 'B']
+    SHELF_BEREICH        = 2
+    if str(einheit_id) in EINHEIT_BEREICH_LIST:
+      for row in subresults:
+        parcel_id = row[0]
+        print(f"Sorting parcel {parcel_id} for einheit {einheit_id} into shelf {SHELF_BEREICH}")
+        # Update the parcels shelf_proposed and add them to assigned_count, assigned_parcel_id, assigned_shelf
+        ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_BEREICH, 'parcel_id', parcel_id)
+        if not ret:
+          print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+        else:
+          assigned_count = assigned_count + 1
+          assigned_parcel_id.append(str(parcel_id))
+          assigned_shelf.append(str(SHELF_BEREICH))
+      continue # Sorted all parcels for einheit "bereich"
 
   
     # General Idea:
