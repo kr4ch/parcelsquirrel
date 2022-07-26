@@ -1,0 +1,18 @@
+<html>
+<head>
+<link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+</head>
+<body>
+<title>BULA Post Sortier App - Add New Parcel QUICK</title>
+<h1>Paket erfassen - SCHNELL</h1>
+<form method="POST">
+    Parcel ID:<br>
+    <input name="parcel_id" value="{{parcel_id}}"><br>
+    Einheit ID:<br>
+    <input name="einheit_id" value="{{einheit_id}}"><br>
+    <br>
+    <input type="submit">
+</form>
+<br><br><a href="/mungg">go home</a>
+</body>
+</html>

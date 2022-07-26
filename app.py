@@ -146,12 +146,61 @@ def new_parcel_post():
 
   #return f'Added new parcel: parcel_id: {parcel_id} FirstName:{first_name} LastName: {last_name} einheit_id: {einheit_id} shelf_proposed: {shelf_proposed} shelf_selected: {shelf_selected} '\
   #              f'dim_1: {dim_1} dim_2: {dim_2} dim_3: {dim_3} weight_g: {weight_g}'
-  return redirect(url_for('index'))
+  return render_template('mungg.html')
+
+# Create new parcel QUICK
+@app.route('/newparcel_quick')
+def new_parcel_quick():
+  return render_template('new-parcel-quick.html')
+
+def new_parcel_quick_params(parcel_id, einheit_id):
+  return render_template('new-parcel-quick.html', parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}')
+
+# Create new parcel QUICK (after clicking SUBMIT)
+@app.route('/newparcel_quick', methods=['POST'])
+def new_parcel_quick_params_post(parcel_id='', einheit_id=''):
+  global last_change
+  # Variable        gets data from form
+  parcel_id       = request.form.get('parcel_id')
+  first_name      = '-'
+  last_name       = '-'
+  einheit_id      = request.form.get('einheit_id')
+  shelf_proposed  = '0'
+  shelf_selected  = '0'
+  dim_1           = '0'
+  dim_2           = '0'
+  dim_3           = '0'
+  weight_g        = '0'
+
+  if parcel_id == '' or einheit_id == '':
+    print(f"ERROR: empty field: parcel_id={parcel_id} einheit_id={einheit_id} ")
+    #redir = redirect(url_for('new_parcel_quick_params', parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}'))
+    #print(redir)
+    #return redirect(url_for('new_parcel_quick_params', parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}'))
+    return ('', 204)
+
+
+  ret = db_insert_into_table('parcels',
+          ['parcel_id', 'first_name', 'last_name', 'einheit_id', 'shelf_proposed', 'shelf_selected', 'dim_1', 'dim_2', 'dim_3', 'weight_g'],
+          [f'"{parcel_id}"', f'"{first_name}"', f'"{last_name}"', f'"{einheit_id}"', f'{shelf_proposed}', f'{shelf_selected}', f'{dim_1}', f'{dim_2}', f'{dim_3}', f'{weight_g}'])
+  if ret:
+    last_change = f"ERROR: Unable to manually add parcel {parcel_id}"
+
+  last_change = f"SUCCESS manually adding parcel {parcel_id}"
+
+  #return f'Added new parcel: parcel_id: {parcel_id} FirstName:{first_name} LastName: {last_name} einheit_id: {einheit_id} shelf_proposed: {shelf_proposed} shelf_selected: {shelf_selected} '\
+  #              f'dim_1: {dim_1} dim_2: {dim_2} dim_3: {dim_3} weight_g: {weight_g}'
+  return render_template('new-parcel-quick.html')
 
 # Search for a parcel
 @app.route('/search/<parcel_id>')
 def search_parcel(parcel_id):
   return render_template('search.html', parcel_id=f'{parcel_id}')
+  
+# Search for a parcel (no parcel id)
+@app.route('/search_no_id')
+def search_parcel_no_id():
+  return render_template('search.html')
 
 # Search for a parcel (after clicking SUBMIT)
 @app.route('/search/<parcel_id>', methods=['POST'])
