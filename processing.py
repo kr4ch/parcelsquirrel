@@ -1,27 +1,39 @@
 import mysql.connector
 from math import isnan
+from itertools import chain, cycle
 
 from db import *
 
 
 # Global Variables
-SHELF_1_DIM     = 300 # mm
-SHELF_2_DIM     = 450 # mm
-SHELF_3_DIM     = 900 # mm
-SHELF_HEIGHT    = 300 # mm. Assumed to be the same for all 3 shelf types
+SHELF_1_DIM     = 255 # mm
+SHELF_2_DIM     = 405 # mm
+SHELF_3_DIM     = 825 # mm
+SHELF_HEIGHT    = 335 # mm. Assumed to be the same for all 3 shelf types
 SHELF_UNSORTED  = 0     # Virtual shelf to indicate new parcels that have not yet been sorted
 SHELF_COLLECTED = 50000 # Virtual shelf to indicate parcels that have already been collected
-SHELF_1_LIST    = range(3,101)   # 1..100
-SHELF_2_LIST    = range(101,201) # 101..200
-SHELF_3_LIST    = range(201,301) # 201..300
+# RESERVED SHELVES: 0,1,2,3,50000
+SHELF_1_LIST    = range(300,587)
+SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+SHELF_2_LIST_MIN = min(SHELF_2_LIST)
+SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+SHELF_2_LIST_MAX = max(SHELF_2_LIST)
+SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+SHELF_3_LIST    = range(100,249)
+
 
 # Conservatism of the fillup sorting algorithm:
-PARCEL_AREA_RESERVE = 1.1                   # We need this factor more area in a shelf because parcels will not fit perfectly
+PARCEL_AREA_RESERVE = 0.8                   # We need this factor more area in a shelf. Can be changed to set how "conservative" to fill the shelves. Greater than 1 is conservative. Less than 1 is "optimistic"
 REQ_SHELF_AREA      = 1/PARCEL_AREA_RESERVE # Shelf must be no more full than this to be considered for putting more parcels in
 
 SHELF_MAX = 5000 # Maximum number of shelves
 
 html_header = """<html>
+   <head>
+      <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+   </head>"""
+
+html_header_simple = """<html>
    <head>
       <style>
         th, td {
@@ -57,7 +69,8 @@ def get_dim_of_shelf(shelf_number):
   """
   Returns the dimension of a shelf (30,45 or 90). If the requested number if not known returns -1
   """
-  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST
+  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_3_LIST
+  SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
   if shelf_number in SHELF_1_LIST:
     return SHELF_1_DIM
   elif shelf_number in SHELF_2_LIST:
@@ -72,7 +85,7 @@ def get_parcel_area(dim_1, dim_2, dim_3):
   Return area required by this parcel. Longest dimension can be ignored because parcel can be longer than shelf
   """
   max_dim = max(dim_1, dim_2, dim_3)
-  print(f"DBG: max_dim={max_dim}")
+  #print(f"DBG: max_dim={max_dim}")
   if max_dim == 0: max_dim = 1 # Avoid division by zero
   area = dim_1 * dim_2 * dim_3 / max_dim
   return area
@@ -81,19 +94,22 @@ def get_shelves():
   """
   Returns a HTML overview of all shelves and the parcels in them
   """
+  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST, SHELF_HEIGHT
+
   parcels_count_in_shelves_30 = db_count_entries_where_in_range('parcels', 'shelf_selected', min(SHELF_1_LIST), max(SHELF_1_LIST))
-  parcels_count_in_shelves_45 = db_count_entries_where_in_range('parcels', 'shelf_selected', min(SHELF_2_LIST), max(SHELF_2_LIST))
+  parcels_count_in_shelves_45 = db_count_entries_where_in_range('parcels', 'shelf_selected', SHELF_2_LIST_MIN, SHELF_2_LIST_MAX)
   parcels_count_in_shelves_90 = db_count_entries_where_in_range('parcels', 'shelf_selected', min(SHELF_3_LIST), max(SHELF_3_LIST))
 
   global html_header
-  html = html_header
-  html += '<body><h1>Shelf Overview</h1><a href="/mungg">Back to start</a><br>'
+  html = html_header_simple
+  html += '<body><h1>Overview Parcels sorted into Shelves</h1><a href="/mungg">Back to start</a><br>'
   html += f'<table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
   html += f'<tr><th>{parcels_count_in_shelves_30} Parcels</th><th>{parcels_count_in_shelves_45} Parcels</th><th>{parcels_count_in_shelves_90} Parcels</th></tr>'
-  html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {min(SHELF_2_LIST)} - {max(SHELF_2_LIST)}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
+  html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {SHELF_2_LIST_MIN} - {SHELF_2_LIST_MAX}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
 
   html += f'<tr></tr>'
-  for i,j,k in zip(SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST):
+  for i,j,k in zip(cycle(SHELF_1_LIST), SHELF_2_LIST, cycle(SHELF_3_LIST)):
+    print(f"{i} {j} {k}")
     res_shelf_30 = db_select_from_table_where('parcels', 'shelf_selected', i)
     shelf_area_used = 1 # Avoid div by zero
     for row in res_shelf_30:
@@ -135,6 +151,71 @@ def get_shelves():
     elif usage_shelf_90 > 0.5:
       html += 'class="highlight-red"'
     html += f'><a href="/shelf/{k}">#{k}</a><br>{db_count_entries_where("parcels", "shelf_selected", k)} Parcels<br>{int(100*usage_shelf_90)}% full</td></tr>'
+  html += '</table></body>'
+  return html
+
+
+def get_shelves_proposed():
+  """
+  Returns a HTML overview of all shelves and the parcels in them
+  """
+  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST, SHELF_HEIGHT
+
+  parcels_count_in_shelves_30 = db_count_entries_where_in_range('parcels', 'shelf_proposed', min(SHELF_1_LIST), max(SHELF_1_LIST))
+  parcels_count_in_shelves_45 = db_count_entries_where_in_range('parcels', 'shelf_proposed', SHELF_2_LIST_MIN, SHELF_2_LIST_MAX)
+  parcels_count_in_shelves_90 = db_count_entries_where_in_range('parcels', 'shelf_proposed', min(SHELF_3_LIST), max(SHELF_3_LIST))
+
+  global html_header
+  html = html_header_simple
+  html += '<body><h1>Overview Parcels assigned (not sorted!) into shelves</h1><a href="/mungg">Back to start</a><br>'
+  html += f'<table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
+  html += f'<tr><th>{parcels_count_in_shelves_30} Parcels</th><th>{parcels_count_in_shelves_45} Parcels</th><th>{parcels_count_in_shelves_90} Parcels</th></tr>'
+  html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {SHELF_2_LIST_MIN} - {SHELF_2_LIST_MAX}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
+
+  html += f'<tr></tr>'
+  for i,j,k in zip(cycle(SHELF_1_LIST), SHELF_2_LIST, cycle(SHELF_3_LIST)):
+    print(f"{i} {j} {k}")
+    res_shelf_30 = db_select_from_table_where('parcels', 'shelf_proposed', i)
+    shelf_area_used = 1 # Avoid div by zero
+    for row in res_shelf_30:
+      area_this_parcel = get_parcel_area(row[6], row[7], row[8])
+      shelf_area_used += area_this_parcel
+    usage_shelf_30 = shelf_area_used / (SHELF_1_DIM*SHELF_HEIGHT)
+    res_shelf_45 = db_select_from_table_where('parcels', 'shelf_proposed', j)
+    shelf_area_used = 1 # Avoid div by zero
+    for row in res_shelf_45:
+      area_this_parcel = get_parcel_area(row[6], row[7], row[8])
+      shelf_area_used += area_this_parcel
+    usage_shelf_45 = shelf_area_used / (SHELF_2_DIM*SHELF_HEIGHT)
+    res_shelf_90 = db_select_from_table_where('parcels', 'shelf_proposed', k)
+    shelf_area_used = 1 # Avoid div by zero
+    for row in res_shelf_90:
+      area_this_parcel = get_parcel_area(row[6], row[7], row[8])
+      shelf_area_used += area_this_parcel
+    usage_shelf_90 = shelf_area_used / (SHELF_3_DIM*SHELF_HEIGHT)
+
+    html += f'<tr><td '
+    if usage_shelf_30 < 0.01:
+      html += 'class="highlight-green"'
+    elif usage_shelf_30 > 0.01 and usage_shelf_30 < 0.5:
+      html += 'class="highlight-yellow"'
+    elif usage_shelf_30 > 0.5:
+      html += 'class="highlight-red"'
+    html += f'><a href="/shelf/{i}">#{i}</a><br>{db_count_entries_where("parcels", "shelf_proposed", i)} Parcels<br>{int(100*usage_shelf_30)}% full</td><td '
+    if usage_shelf_45 < 0.01:
+      html += 'class="highlight-green"'
+    elif usage_shelf_45 > 0.01 and usage_shelf_45 < 0.5:
+      html += 'class="highlight-yellow"'
+    elif usage_shelf_45 > 0.5:
+      html += 'class="highlight-red"'
+    html += f'><a href="/shelf/{j}">#{j}</a><br>{db_count_entries_where("parcels", "shelf_proposed", j)} Parcels<br>{int(100*usage_shelf_45)}% full</td><td '
+    if usage_shelf_90 < 0.01:
+      html += 'class="highlight-green"'
+    elif usage_shelf_90 > 0.01 and usage_shelf_90 < 0.5:
+      html += 'class="highlight-yellow"'
+    elif usage_shelf_90 > 0.5:
+      html += 'class="highlight-red"'
+    html += f'><a href="/shelf/{k}">#{k}</a><br>{db_count_entries_where("parcels", "shelf_proposed", k)} Parcels<br>{int(100*usage_shelf_90)}% full</td></tr>'
   html += '</table></body>'
   return html
 
@@ -303,12 +384,14 @@ def assign_shelf_to_new_parcels_fillup():
   """
   global PARCEL_AREA_RESERVE, SHELF_MAX
   global SHELF_HEIGHT, REQ_SHELF_AREA
+  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST, SHELF_HEIGHT
 
   assigned_count     = 0
   assigned_parcel_id = []
   assigned_shelf     = []
   failed_count       = 0
   failed_parcel_id   = []  
+  empty_subresults = False
   
   # Generate overview of which shelfs have been assigned
   html_string = ''
@@ -322,14 +405,14 @@ def assign_shelf_to_new_parcels_fillup():
     einheit_id = row[3]
     if einheit_id not in einheit_id_list:
       einheit_id_list.append(einheit_id)
-  print(f"Einheiten: {einheit_id_list}")
+  print(f"Einheiten Total to be sorted: {len(einheit_id_list)}")
 
   # Iterate through every einheit that has parcels to be sorted
   for einheit_id in einheit_id_list:
     print(f"DBG: working on einheit {einheit_id}")
     # Get all unassigned parcels for this einheit
     subresults = db_select_from_table_where_and('parcels', 'shelf_proposed', '0', 'einheit_id', einheit_id)
-    print(subresults)
+    print(f"working on einheit {einheit_id} with {len(subresults)} parcels")
 
     # Special case: all parcels for einheit "0" are NOT sorted into a shelf!
     EINHEIT_EMPTY_LIST = ['0', 0]
@@ -387,7 +470,7 @@ def assign_shelf_to_new_parcels_fillup():
       area_parcels_this_einheit += area_this_parcel
 
     print(f"Total area required for einheit {einheit_id} is {area_parcels_this_einheit:0.2f} mm^2")
-    print(f"To be on the safe side, we require {area_parcels_this_einheit*PARCEL_AREA_RESERVE:0.2f} mm^2")
+    print(f"We require actually {area_parcels_this_einheit*PARCEL_AREA_RESERVE:0.2f} mm^2")
 
     # Determine which shelf this parcel should go on
 
@@ -395,7 +478,7 @@ def assign_shelf_to_new_parcels_fillup():
     ## Ignore parcels that are not yet sorted (0) and that are already taken out (50000)
     global SHELF_COLLECTED, SHELF_UNSORTED
     results_einheit = db_select_from_table_where_and_not_and_not('parcels', 'einheit_id', f'{einheit_id}', 'shelf_selected', SHELF_UNSORTED, 'shelf_selected', SHELF_COLLECTED)
-    print(f"DBG: results_einheit={results_einheit}")
+    #print(f"DBG: results_einheit={results_einheit}")
     if results_einheit == []:
       print(f"No shelves found for einheit {einheit_id}")
 
@@ -461,14 +544,17 @@ def assign_shelf_to_new_parcels_fillup():
     print(f"DBG: area required in fresh shelves: {area_parcels_this_einheit*PARCEL_AREA_RESERVE:0.2f} mm^2")
 
     # As long as there are parcels left, sort them in:
-    iteration_cnt = 0
-    while area_parcels_this_einheit > 0:
-      iteration_cnt += 1
-      if iteration_cnt > 100:
-        print(f"ERROR: Can not find any shelf for parcels of einheit {einheit_id} (Iteration overflow)")
-        html_string   += f"ERROR: Can not find a shelf for parcels of einheit {einheit_id}!"
-        failed_count  += 1
-        break # Avoid infinite loop
+#    if empty_subresults:
+#      empty_subresults = False
+#      break
+    #iteration_cnt = 0
+    if area_parcels_this_einheit > 0:
+    #  iteration_cnt += 1
+    #  if iteration_cnt > 100:
+    #    print(f"ERROR: Can not find any shelf for parcels of einheit {einheit_id} (Iteration overflow)")
+    #    html_string   += f"ERROR: Can not find a shelf for parcels of einheit {einheit_id}!"
+    #    failed_count  += 1
+    #    break # Avoid infinite loop
       # Can we fit the remaining parcels in the smallest shelf?
       if area_parcels_this_einheit*PARCEL_AREA_RESERVE < SHELF_1_DIM*SHELF_HEIGHT:
         shelf_list = SHELF_1_LIST
@@ -480,9 +566,12 @@ def assign_shelf_to_new_parcels_fillup():
         shelf_list = SHELF_3_LIST 
         print("Need a 90cm shelf")
 
+      print(f"DBG: working on einheit {einheit_id}")
+
       # Find the first shelf that is empty
       for shelf_no in shelf_list:
         if not db_test_if_value_exists_in_column_in_table('parcels', 'shelf_proposed', f'{shelf_no}'):
+          print(f"DBG: found that shelf {shelf_no} is empty. area_parcels_this_einheit={area_parcels_this_einheit}")
           # Stop condition: If we have sorted all parcels, stop going through the shelves
           if area_parcels_this_einheit <= 0:
             break
@@ -494,9 +583,15 @@ def assign_shelf_to_new_parcels_fillup():
 
           # Go through parcels of this einheit and sort them into this shelf until there is no more space
           subresults_tmp = db_select_from_table_where_and('parcels', 'shelf_proposed', '0', 'einheit_id', einheit_id)
+          print(f"DBG: working on {subresults_tmp}")
+          if len(subresults_tmp) == 0:
+            empty_subresults = True
+            break
           for row in subresults_tmp:
             parcel_id         = row[0]
             area_this_parcel  = get_parcel_area(row[6], row[7], row[8])
+
+            print(f"DBG: try to sort {parcel_id} into shelf {shelf_no}")
 
             # Do we have space left in this shelf?
             if shelf_area_left/PARCEL_AREA_RESERVE > area_this_parcel:
@@ -515,7 +610,85 @@ def assign_shelf_to_new_parcels_fillup():
 
             else:
               # If no more space, stop trying to fit parcels into this shelf
+              print(f"No more space left in shelf {shelf_no}. Parcel {parcel_id} will be sorted into shelf 3")
+              # parcel is too big for 90cm shelf, sort it into a special shelf
+              SHELF_TOO_LARGE = 3
+              ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_TOO_LARGE, 'parcel_id', parcel_id)
+              if not ret:
+                print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+              else:
+                assigned_count = assigned_count + 1
+                assigned_parcel_id.append(str(parcel_id))
+                assigned_shelf.append(str(SHELF_ROVER))
               break
+
+      # We got here because there are no more shelves available (all are filled)
+      # Try to fill smaller shelves
+      SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+      
+      print(f"WARNING: All shelves of the requested type are filled up! Trying to fill parcels for einheit {einheit_id} into other shelves")
+
+      for shelf_no in chain(SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST):
+        # try to fit left-over parcels into any shelf that has enough space left
+
+        # Find empty shelf
+        if not db_test_if_value_exists_in_column_in_table('parcels', 'shelf_proposed', f'{shelf_no}'):
+          print(f"DBG: found that shelf {shelf_no} is empty. Left-over area_parcels_this_einheit={area_parcels_this_einheit}")
+
+          # Stop condition: If we have sorted all parcels, stop going through the shelves
+          if area_parcels_this_einheit <= 0:
+            print(f"DBG: Sorted all parcels for einheit {einheit_id}")
+            break
+
+          # Found an empty shelf. Sort parcels in as long as there is space
+          dim_this_shelf = get_dim_of_shelf(shelf_no)
+          print(f"dim_this_shelf={dim_this_shelf}")
+          max_shelf_area = dim_this_shelf * SHELF_HEIGHT
+          shelf_area_left = max_shelf_area
+
+          # Go through parcels of this einheit and sort them into this shelf until there is no more space
+          subresults_tmp = db_select_from_table_where_and('parcels', 'shelf_proposed', '0', 'einheit_id', einheit_id)
+          print(f"DBG: working on {subresults_tmp}")
+          if len(subresults_tmp) == 0:
+            empty_subresults = True
+            break
+          for row in subresults_tmp:
+            parcel_id         = row[0]
+            area_this_parcel  = get_parcel_area(row[6], row[7], row[8])
+
+            print(f"DBG: try to sort {parcel_id} into shelf {shelf_no}")
+            print(f"DBG: shelf_area_left/PARCEL_AREA_RESERVE={shelf_area_left/PARCEL_AREA_RESERVE} ? area_this_parcel={area_this_parcel}")
+
+            # Do we have space left in this shelf?
+            if shelf_area_left/PARCEL_AREA_RESERVE > area_this_parcel:
+              # Sort parcel into this shelf
+              shelf_area_left           -= area_this_parcel
+              area_parcels_this_einheit -= area_this_parcel
+              print(f"Sorting parcel {parcel_id} for einheit {einheit_id} into shelf {shelf_no}")
+              # Update the parcels shelf_proposed and add them to assigned_count, assigned_parcel_id, assigned_shelf
+              ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', shelf_no, 'parcel_id', parcel_id)
+              if not ret:
+                print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+              else:
+                assigned_count = assigned_count + 1
+                assigned_parcel_id.append(str(parcel_id))
+                assigned_shelf.append(str(shelf_no))
+            else:            
+              # if too big, then put in shelf 3
+              # If no more space, stop trying to fit parcels into this shelf
+              print(f"No more space left in shelf {shelf_no}. Parcel {parcel_id} will be sorted into shelf 3")
+              # parcel is too big for 90cm shelf, sort it into a special shelf
+              SHELF_TOO_LARGE = 3
+              ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_TOO_LARGE, 'parcel_id', parcel_id)
+              if not ret:
+                print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+              else:
+                assigned_count = assigned_count + 1
+                assigned_parcel_id.append(str(parcel_id))
+                assigned_shelf.append(str(SHELF_ROVER))
+              break
+          
+
 
       
 
@@ -680,7 +853,7 @@ def import_parcels_to_db(parcel_dict):
     parcel_id       = str(parcel_dict['parcel_id'][i] if isinstance(parcel_dict['parcel_id'][i], int) else 0)                  # Expect int
     first_name      = str(parcel_dict['first_name'][i])                                                                 # Expect string
     last_name       = str(parcel_dict['last_name'][i])                                                                  # Expect string
-    einheit_id      = str(parcel_dict['einheit_id'][i] if isinstance(parcel_dict['einheit_id'][i], int) else 0)         # Expect string
+    einheit_id      = str(parcel_dict['einheit_id'][i])
     shelf_proposed  = str(int(parcel_dict['shelf_proposed'][i]) if not isnan(parcel_dict['shelf_proposed'][i]) else 0)  # Expect float
     shelf_selected  = str(int(parcel_dict['shelf_selected'][i]) if not isnan(parcel_dict['shelf_selected'][i]) else 0)  # Expect float
     dim_1           = str(int(parcel_dict['dim_1'][i]) if not isnan(parcel_dict['dim_1'][i]) else 0)                    # Expect float
@@ -741,4 +914,5 @@ def count_parcels():
   no_parcels_tobesorted   = db_count_entries_where_and_not('parcels', 'shelf_selected', '0', 'shelf_proposed', '0')
   no_parcels_sorted       = db_count_entries_where_not_and_not('parcels', 'shelf_selected', '0', 'shelf_proposed', str(SHELF_COLLECTED))
   no_parcels_collected    = db_count_entries_where_and('parcels', 'shelf_selected', str(SHELF_COLLECTED), 'shelf_proposed', str(SHELF_COLLECTED))
-  return no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected
+  no_parcels_einheit0     = db_count_entries_where_and('parcels', 'einheit_id', '0', 'shelf_selected', '0')
+  return no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected, no_parcels_einheit0

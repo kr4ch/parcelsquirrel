@@ -49,11 +49,11 @@ def index_post():
 @app.route('/mungg')
 def admin():
   global last_change
-  no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected = count_parcels()
+  no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected, no_parcels_einheit0 = count_parcels()
 
   return render_template('mungg.html',
       last_change=last_change,
-      no_parcels_total=no_parcels_total, no_parcels_tobeassigned=no_parcels_tobeassigned, no_parcels_tobesorted=no_parcels_tobesorted, no_parcels_sorted=no_parcels_sorted, no_parcels_collected=no_parcels_collected)
+      no_parcels_total=no_parcels_total, no_parcels_tobeassigned=no_parcels_tobeassigned, no_parcels_tobesorted=no_parcels_tobesorted, no_parcels_sorted=no_parcels_sorted, no_parcels_collected=no_parcels_collected, no_parcels_einheit0=no_parcels_einheit0)
 
 # List all known parcels
 @app.route('/parcels')
@@ -92,6 +92,12 @@ def get_parcels():
 @app.route('/shelves')
 def list_shelves():
   html = get_shelves()
+  return html
+  
+# List all shelves proposed
+@app.route('/shelves_proposed')
+def list_shelves_proposed():
+  html = get_shelves_proposed()
   return html
 
 # Detail single shelf
@@ -153,15 +159,20 @@ def new_parcel_post():
 def new_parcel_quick():
   return render_template('new-parcel-quick.html')
 
-def new_parcel_quick_params(parcel_id, einheit_id):
-  return render_template('new-parcel-quick.html', parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}')
+@app.route('/newparcel_quick', methods=['POST'])
+def new_parcel_quick_post():
+  parcel_id       = request.form.get('parcel_id')
+  return redirect(url_for('new_parcel_quick2',  parcel_id=f'{parcel_id}'))
+
+@app.route('/newparcel_quick2/<parcel_id>')
+def new_parcel_quick2(parcel_id):
+  return render_template('new-parcel-quick2.html')
 
 # Create new parcel QUICK (after clicking SUBMIT)
-@app.route('/newparcel_quick', methods=['POST'])
-def new_parcel_quick_params_post(parcel_id='', einheit_id=''):
+@app.route('/newparcel_quick2/<parcel_id>', methods=['POST'])
+def new_parcel_quick_params_post(parcel_id):
   global last_change
   # Variable        gets data from form
-  parcel_id       = request.form.get('parcel_id')
   first_name      = '-'
   last_name       = '-'
   einheit_id      = request.form.get('einheit_id')
@@ -171,14 +182,6 @@ def new_parcel_quick_params_post(parcel_id='', einheit_id=''):
   dim_2           = '0'
   dim_3           = '0'
   weight_g        = '0'
-
-  if parcel_id == '' or einheit_id == '':
-    print(f"ERROR: empty field: parcel_id={parcel_id} einheit_id={einheit_id} ")
-    #redir = redirect(url_for('new_parcel_quick_params', parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}'))
-    #print(redir)
-    #return redirect(url_for('new_parcel_quick_params', parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}'))
-    return ('', 204)
-
 
   ret = db_insert_into_table('parcels',
           ['parcel_id', 'first_name', 'last_name', 'einheit_id', 'shelf_proposed', 'shelf_selected', 'dim_1', 'dim_2', 'dim_3', 'weight_g'],
@@ -232,7 +235,61 @@ def search_parcel_post(parcel_id):
   row = cursor.fetchone()
   if row == None:
     print(f'ERROR: Unable to find parcel with id {parcel_id}')
-    return f'ERROR: Unable to find parcel with id {parcel_id}<br><a href="/search/990000000000000000">go back</a>"'
+    return f'ERROR: Unable to find parcel with id {parcel_id}<br><a href="/search_no_id">Search</a>"'
+
+  for row in cursor:
+    print(f"* {row}")
+    #TODO: Test if multiple parcels match the searched id!
+
+  # Get the values for the different columns. Make them safe for a URL with quote_plus. For example "/" can not be passed!
+  parcel_id       = quote_plus(str(row[0]))
+  first_name      = quote_plus(str(row[1]))
+  last_name       = quote_plus(str(row[2]))
+  einheit_id      = quote_plus(str(row[3]))
+  shelf_proposed  = quote_plus(str(row[4]))
+  shelf_selected  = quote_plus(str(row[5]))
+  dim_1           = quote_plus(str(row[6]))
+  dim_2           = quote_plus(str(row[7]))
+  dim_3           = quote_plus(str(row[8]))
+  weight_g        = quote_plus(str(row[9]))
+
+  cursor.close()
+
+  return redirect(url_for('edit_parcel',  parcel_id=f'{parcel_id}', first_name=f'{first_name}', last_name=f'{last_name}', \
+                                          einheit_id=f'{einheit_id}', shelf_proposed=f'{shelf_proposed}', shelf_selected=f'{shelf_selected}', \
+                                          dim_1=f'{dim_1}', dim_2=f'{dim_2}', dim_3=f'{dim_3}', weight_g=f'{weight_g}'))
+
+# Search for a parcel (after clicking SUBMIT)
+@app.route('/search_no_id', methods=['POST'])
+def search_parcel_no_id_post():
+  parcel_id = request.form.get('parcel_id')
+
+  # Test if data is valid. Eg. if parcel_id is correct format
+  ret = test_parcel_id_valid(parcel_id)
+  if ret: return ret + '<br><br><a href="/search_no_id">Search</a>'
+
+  mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="secret",
+    database="inventory"
+  )
+  cursor = mydb.cursor()
+
+  if not checkTableExists(mydb, "parcels"):
+      return f'ERROR: table "parcels" does not exist!'
+
+  # Check if we have a parcel in our table that matches parcel_id
+  sql_cmd = f"SELECT * FROM parcels WHERE parcel_id = '{parcel_id}'"
+  print(sql_cmd)
+  cursor.execute(sql_cmd)
+
+  print(f"DBG: cursor={cursor}")
+
+  row = cursor.fetchone()
+  if row == None:
+    print(f'ERROR: Unable to find parcel with id {parcel_id}')
+    return f'ERROR: Unable to find parcel with id {parcel_id}<br><a href="/search_no_id">Search</a>"'
 
   for row in cursor:
     print(f"* {row}")
@@ -330,7 +387,7 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
   print(record)
 
   cursor.close()
-  return f'SUCCESS! Edited: {record}<br><br><a href="/mungg">Home</a>'
+  return f'SUCCESS! Edited: {record}<br><br><a href="/search_no_id">Search</a><br><br><a href="/mungg">Home</a>'
 
 #############################################
 # Upload / Download / Export Functionality

@@ -32,8 +32,11 @@ def test_parcel_id_valid(parcel_id):
 
   # Test if we got the correct format like "990123456789012345"
   matched = re.match("99[0-9]{16}", parcel_id)
-  is_match = bool(matched)
-  if not is_match:
+  is_match_99 = bool(matched)
+  # Test if we got the correct format like "980123456789012345"
+  matched = re.match("98[0-9]{16}", parcel_id)
+  is_match_98 = bool(matched)
+  if not (is_match_99 or is_match_98):
     return f'ERROR: Invalid parcel_id {parcel_id}. Expected "990123456789012345"'
 
 ###############################################################################
@@ -174,7 +177,7 @@ def db_select_from_table_where(table, where_col, where_val):
       return 0
 
   sql_cmd = f"SELECT * FROM {table} WHERE {where_col} = '{str(where_val)}'"
-  print(sql_cmd)
+  #print(sql_cmd)
   cursor.execute(sql_cmd)
   
   results = cursor.fetchall()
@@ -203,7 +206,7 @@ def db_select_from_table_where_and(table, where_col, where_val, where_col2, wher
       return 0
 
   sql_cmd = f"SELECT * FROM {table} WHERE {where_col} = '{str(where_val)}' AND {where_col2} = '{str(where_val2)}'"
-  print(sql_cmd)
+  #print(sql_cmd)
   cursor.execute(sql_cmd)
   
   results = cursor.fetchall()
