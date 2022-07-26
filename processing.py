@@ -311,7 +311,7 @@ def assign_shelf_to_new_parcels_fillup():
   failed_parcel_id   = []  
   
   # Generate overview of which shelfs have been assigned
-  html_string = f'Assigned shelf to {assigned_count} parcels:<br><br>'
+  html_string = ''
 
   # Find all parcels that have not been assigned to a shelf yet  
   results = db_select_from_table_where('parcels', 'shelf_proposed', '0')
@@ -346,7 +346,7 @@ def assign_shelf_to_new_parcels_fillup():
           assigned_count = assigned_count + 1
           assigned_parcel_id.append(str(parcel_id))
           assigned_shelf.append(str(SHELF_ROVER))
-      break # Sorted all parcels for einheit "rover"
+      continue # Sorted all parcels for einheit "rover"
 
   
     # General Idea:
@@ -502,6 +502,8 @@ def assign_shelf_to_new_parcels_fillup():
     html_string += f'ID: {assigned_parcel_id[i]}: Shelf {assigned_shelf[i]}<br>'
   if failed_count > 0:
     html_string += f'<br><b>FAILED</b> to assign shelf to {failed_count} parcels:' + '<br>'.join(failed_parcel_id)
+  
+  html_string += f'<br><br>Assigned shelf to {assigned_count} parcels'
   html_string += '<br><br><a href="/mungg">Back to start</a>'
 
   summary_string = f"Assigned {assigned_count} parcels to a shelf."
@@ -533,7 +535,7 @@ def upload_post_parcels_to_db(parcel_dict):
     else: print(f"WARNING: Unknown column in table: {key}")
   
   if not all(required_keys):
-    return "<h1>ERROR: Missing column in Excel sheet!<h1>", ""
+    return "<h1>ERROR: Missing column in Excel sheet! Need (IC, NAME3, STRASSE, NAME2, DIM_1, DIM_2, DIM_3, GEWICHT)<h1>", ""
 
   print(parcel_dict)
 
@@ -545,7 +547,7 @@ def upload_post_parcels_to_db(parcel_dict):
     parcel_id  = str(parcel_dict['IC'][i] if isinstance(parcel_dict['IC'][i], int) else 0)            # Expect int
     first_name = str(parcel_dict['NAME3'][i])                                                         # Expect string
     last_name  = str(parcel_dict['STRASSE'][i])                                                       # Expect string
-    einheit_id = str(parcel_dict['NAME2'][i] if isinstance(parcel_dict['NAME2'][i], int) else 0)      # Expect string
+    einheit_id = str(parcel_dict['NAME2'][i])                                                         # Expect string
     dim_1      = str(int(parcel_dict['DIM_1'][i]) if not isnan(parcel_dict['DIM_1'][i]) else 0)       # Expect float
     dim_2      = str(int(parcel_dict['DIM_2'][i]) if not isnan(parcel_dict['DIM_2'][i]) else 0)       # Expect float
     dim_3      = str(int(parcel_dict['DIM_3'][i]) if not isnan(parcel_dict['DIM_3'][i]) else 0)       # Expect float
