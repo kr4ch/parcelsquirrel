@@ -3,18 +3,15 @@
 <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
 </head>
 <body>
-<title>BULA Post Sortier App</title>
-<h1>Checkout client</h1>
-<h2>Scan all parcels</h2>
-<br>
+<title>ParcelSquirrel Check-Out</title>
+<h1>Check-Out</h1>
+<h2>Alle Pakete scannen / Franz / Ital / Scan all parcels</h2>
 <form method="POST">
-    Parcel ID:<br>
-    <input name="parcel_id">
+    <p class="movaFormularTitel">Paket-ID:</p>
+    <input class="movaFormular" name="parcel_id" autofocus>
     <br>
-    <input type="submit" name="action" value="Next">
-    <br>
-    <input type="submit" name="action" value="Done">
+    <input type="submit" class="movaButton" name="action" value="Next">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp<input type="submit" class="movaButton" name="action" value="Done">
 </form>
-<br><br><a href="/checkout">Start again</a>
+<a href="/checkout" class="movaButton">Start again</a>
 </body>
 </html>

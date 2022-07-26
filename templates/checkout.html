@@ -3,16 +3,14 @@
 <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
 </head>
 <body>
-<title>BULA Post Sortier App</title>
-<h1>Check-Out client</h1>
-<h2>1. Scan your Badge</h2>
-<br>
-<form method="POST">
-    Client ID:<br>
-    <input name="client_id" value="{{client_id}}">
-    <br>
-    <input type="submit">
-</form>
-<a href="checkout" class="movaButton">Restart</a>
-</body>
+<title>ParcelSquirrel Check-Out</title>
+  <h1>Check-Out</h1>
+  <form method="POST">
+      <p class="movaFormularTitel">Badge-ID:</p>
+      <input class="movaFormular" value="{{client_id}}" name="client_id" autofocus>
+      <br>
+      <input class="movaButton" type="submit" value="LOGIN">
+  </form>
+    <a href="checkout" class="movaButton">Restart</a>
+  </body>
 </html>

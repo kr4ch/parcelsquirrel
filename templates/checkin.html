@@ -3,11 +3,11 @@
 <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
 </head>
 <body>
-<title>ParcelSquirrel</title>
+<title>ParcelSquirrel Check In</title>
   <h1>CHECK IN</h1>
   <form method="POST">
-      <p class="movaFormularTitel">ID:</p>
-      <input class="movaFormular" value="{{client_id}}" name="client_id">
+      <p class="movaFormularTitel">Badge-ID:</p>
+      <input class="movaFormular" value="{{client_id}}" name="client_id" autofocus>
       <br>
       <input class="movaButton" type="submit" value="LOGIN">
   </form>

@@ -51,7 +51,7 @@ def admin():
   global last_change
   no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected = count_parcels()
 
-  return render_template('mungg.html', 
+  return render_template('mungg.html',
       last_change=last_change,
       no_parcels_total=no_parcels_total, no_parcels_tobeassigned=no_parcels_tobeassigned, no_parcels_tobesorted=no_parcels_tobesorted, no_parcels_sorted=no_parcels_sorted, no_parcels_collected=no_parcels_collected)
 
@@ -85,19 +85,19 @@ def get_parcels():
     this_parcel_id = row[0]
     parcel_table_html += '<tr>'+' '.join(['<td>'+str(item)+'</td>' for item in row]) + f'<td><a href="search/{this_parcel_id}">Edit</a></td></tr>'
   parcel_table_html += '</table><br><br><a href="/mungg">Back to start</a>'
-  
+
   return parcel_table_html
 
 # List all shelves
 @app.route('/shelves')
 def list_shelves():
-  html = get_shelves()  
+  html = get_shelves()
   return html
 
 # Detail single shelf
 @app.route('/shelf/<shelf_no>')
 def shelf(shelf_no):
-  html = get_shelf(shelf_no)  
+  html = get_shelf(shelf_no)
   return html
 
 # Initialize database (Deletes all existing records!) STEP 1
@@ -179,7 +179,7 @@ def search_parcel_post(parcel_id):
   cursor.execute(sql_cmd)
 
   print(f"DBG: cursor={cursor}")
-  
+
   row = cursor.fetchone()
   if row == None:
     print(f'ERROR: Unable to find parcel with id {parcel_id}')
@@ -188,7 +188,7 @@ def search_parcel_post(parcel_id):
   for row in cursor:
     print(f"* {row}")
     #TODO: Test if multiple parcels match the searched id!
-  
+
   # Get the values for the different columns. Make them safe for a URL with quote_plus. For example "/" can not be passed!
   parcel_id       = quote_plus(str(row[0]))
   first_name      = quote_plus(str(row[1]))
@@ -254,7 +254,7 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
 
   # Check if we have a parcel in our table that matches parcel_id
   sql_select_cmd = f"SELECT * FROM parcels WHERE parcel_id = '{parcel_id}'"
-  print(sql_select_cmd)  
+  print(sql_select_cmd)
   cursor.execute(sql_select_cmd)
   record = cursor.fetchone()
   print(f"EDITING {record}")
@@ -279,7 +279,7 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
   cursor.execute(sql_select_cmd)
   record = cursor.fetchone()
   print(record)
-  
+
   cursor.close()
   return f'SUCCESS! Edited: {record}<br><br><a href="/mungg">Home</a>'
 
@@ -390,7 +390,7 @@ def sort_search_post():
   cursor.execute(sql_cmd)
 
   print(f"DBG: cursor={cursor}")
-  
+
   row = cursor.fetchone()
   if row == None:
     print(f'ERROR: Unable to find parcel with id {parcel_id}')
@@ -399,7 +399,7 @@ def sort_search_post():
   for row in cursor:
     print(f"* {row}")
     #TODO: Test if multiple parcels match the searched id!
-  
+
   # Get the values for the different columns. Make them safe for a URL with quote_plus. For example "/" can not be passed!
   parcel_id       = quote_plus(str(row[0]))
   shelf_proposed  = quote_plus(str(row[4]))
@@ -453,7 +453,7 @@ def sort_edit_post(parcel_id, shelf_proposed, shelf_selected, first_name, last_n
 
   # Check if we have a parcel in our table that matches parcel_id
   sql_select_cmd = f"SELECT * FROM parcels WHERE parcel_id = '{parcel_id}'"
-  print(sql_select_cmd)  
+  print(sql_select_cmd)
   cursor.execute(sql_select_cmd)
   record = cursor.fetchone()
   print(f"EDITING {record}")
@@ -482,7 +482,7 @@ def sort_edit_post(parcel_id, shelf_proposed, shelf_selected, first_name, last_n
   db_insert_into_table('client_log', ['client_id', 'store_time', 'parcel_id'], [f'{client_id}', f'"{store_time}"', f'"{parcel_id}"'])
 
   #return f'SUCCESS! Sorted parcel {record} to shelf {shelf_selected}. Proposed shelf was {shelf_proposed}<br><br><a href="/mungg>Home</a>'
-  return redirect(url_for('index'))
+  return redirect(url_for('sort_search'))
 
 ###############################################################################
 # Client access (Check-In / Check-Out)
@@ -497,14 +497,14 @@ def checkin():
 @app.route('/checkin', methods=['POST'])
 def checkin_post():
   client_id = request.form.get('client_id')
-  # TODO: Check if client id is valid  
+  # TODO: Check if client id is valid
 
   checkin_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
   db_insert_into_table('client_log', ['client_id', 'checkin_time'], [f'"{client_id}"', f'"{checkin_time}"'])
 
   return redirect(url_for('client_search'))
-  
+
 # Client search by einheit ID
 @app.route('/client_search')
 def client_search():
@@ -540,7 +540,7 @@ def client_search_post():
       # Report a shelf only once
       elif shelf_list.count(shelf_selected) == 1 and shelf_selected < SHELF_MAX:
         html += f'Shelf #{shelf_selected}<br>'
-  html += '<br><br><a href="checkin">Restart</a></body></html>'
+  html += '<br><br><a href="checkin" class="movaButton">Restart</a></body></html>'
 
   return html
 
@@ -556,7 +556,7 @@ def checkout_post():
   # TODO: Check if client id is valid
 
   return redirect(url_for('checkout_parcel', client_id=client_id))
-  
+
 # Client checkout parcels
 @app.route('/checkout_parcel/<client_id>')
 def checkout_parcel(client_id):
@@ -567,7 +567,7 @@ def checkout_parcel(client_id):
 def checkout_parcel_post(client_id):
   parcel_id = request.form.get('parcel_id')
   if parcel_id == '':
-    return 'Finished checking out parcels<br><br><a href="/mungg>go home</a>'
+    return 'Finished checking out parcels<br><br><a href="/checkout" class="movaButton">Restart</a>'
   ret = test_parcel_id_valid(parcel_id)
   if ret: return ret
 
@@ -609,10 +609,10 @@ def checkout_parcel_post(client_id):
     return redirect(url_for('checkout_parcel', client_id=client_id))
   elif request.form['action'] == 'Done':
     global html_header
-    return html_header + "\n<body>\n" + 'Finished checking out parcels<br><br><a href="checkout">Restart</a></body></html>'
+    return html_header + "\n<title>ParcelSquirrel Check-Out</title><h1>Danke</h1>\n" + '<p class="movaFormularTitel">Finished checking out parcels:</p><br><a href="/checkout" class="movaButton">Restart</a></body></html>'
   else:
     print("ERROR: Unknown submit name")
-  return redirect(url_for('index'))
+  return redirect(url_for('checkout'))
 
 # List client log
 @app.route('/clientlog')
@@ -636,7 +636,7 @@ def client_log():
     this_parcel_id = row[0]
     html += f'<tr><td>{results.index(row)}</td>'+' '.join(['<td>'+str(item)+'</td>' for item in row])
   html += '</table><br><br><a href="/mungg">Back to start</a>'
-  
+
   return html
 
 @app.route("/statistics")
