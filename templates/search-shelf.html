@@ -1,0 +1,17 @@
+<html>
+<head>
+<link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+</head>
+<body>
+<title>BULA Post Sortier App</title>
+<h1>Search shelf</h1>
+<br>
+<form method="POST">
+    Shelf No.:<br>
+    <input name="shelf_no" value="{{shelf_no}}" autofocus>
+    <br>
+    <input type="submit">
+</form>
+<br><br><a href="/mungg">go home</a>
+</body>
+</html>

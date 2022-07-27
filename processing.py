@@ -11,6 +11,7 @@ SHELF_2_DIM     = 405 # mm
 SHELF_3_DIM     = 825 # mm
 SHELF_HEIGHT    = 335 # mm. Assumed to be the same for all 3 shelf types
 SHELF_UNSORTED  = 0     # Virtual shelf to indicate new parcels that have not yet been sorted
+SHELF_NIRVANA   = 40000 # Virtual shelf to indicate parcels that have presumably been collected but not checked out (empty shelf)
 SHELF_COLLECTED = 50000 # Virtual shelf to indicate parcels that have already been collected
 # RESERVED SHELVES: 0,1,2,3,50000
 SHELF_1_LIST    = range(300,587)
@@ -31,9 +32,9 @@ REQ_SHELF_AREA      = 1/PARCEL_AREA_RESERVE # Shelf must be no more full than th
 SHELF_MAX = 5000 # Maximum number of shelves
 
 html_header = """<html>
-   <head>
-      <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
-   </head>"""
+<head>
+<link rel="stylesheet" href="/static/styles/stylesheet.css">
+</head>"""
 
 html_header_simple = """<html>
    <head>
@@ -156,7 +157,11 @@ def get_shelves():
   html += '</table></body>'
   return html
 
+# Test if parcel already exists in database
+def check_parcel_exists(parcel_id):
+  return db_test_if_value_exists_in_column_in_table('parcels', 'parcel_id', f'{parcel_id}')
 
+# Get all shelves that are PROPOSED (not sorted in!)
 def get_shelves_proposed():
   """
   Returns a HTML overview of all shelves and the parcels in them
@@ -225,6 +230,8 @@ def get_shelf(shelf_no):
   """
   Returns a HTML view of the requested shelf number
   """
+  global SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST, SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM
+
   shelf = int(shelf_no)
   parcel_count = db_count_entries_where('parcels', 'shelf_selected', shelf)
 
@@ -263,6 +270,7 @@ def get_shelf(shelf_no):
   html += f''
   html += f'</table>'
 
+  html += f'<br><br><br><a href="/shelf_empty_parcels/{shelf_no}" class="movaButton">FACH LEEREN</a>(Achtung entfernt alle Pakete -> 40000)'
   html += '</body>'
   return html
 
@@ -484,8 +492,8 @@ def assign_shelf_to_new_parcels_fillup():
 
     ## Find if there are other parcels for the same einheit_id that are already placed in a shelf
     ## Ignore parcels that are not yet sorted (0) and that are already taken out (50000)
-    global SHELF_COLLECTED, SHELF_UNSORTED
-    results_einheit = db_select_from_table_where_and_not_and_not('parcels', 'einheit_id', f'{einheit_id}', 'shelf_selected', SHELF_UNSORTED, 'shelf_selected', SHELF_COLLECTED)
+    global SHELF_COLLECTED, SHELF_UNSORTED, SHELF_NIRVANA
+    results_einheit = db_select_from_table_where_and_not_and_not_and_not('parcels', 'einheit_id', f'{einheit_id}', 'shelf_selected', SHELF_UNSORTED, 'shelf_selected', SHELF_COLLECTED, 'shelf_selected', SHELF_NIRVANA)
     #print(f"DBG: results_einheit={results_einheit}")
     if results_einheit == []:
       print(f"No shelves found for einheit {einheit_id}")
@@ -924,3 +932,19 @@ def count_parcels():
   no_parcels_collected    = db_count_entries_where_and('parcels', 'shelf_selected', str(SHELF_COLLECTED), 'shelf_proposed', str(SHELF_COLLECTED))
   no_parcels_einheit0     = db_count_entries_where_and('parcels', 'einheit_id', '0', 'shelf_selected', '0')
   return no_parcels_total, no_parcels_tobeassigned, no_parcels_tobesorted, no_parcels_sorted, no_parcels_collected, no_parcels_einheit0
+
+def test_shelf_no_valid(shelf_no):
+  global SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST
+  list_all_shelves = chain(SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST)
+  if not int(shelf_no) in list_all_shelves:
+    return f'<b>ERROR:</b> Unknown shelf! ({shelf_no})'
+
+def empty_parcels_in_shelf(shelf_no):
+  global SHELF_NIRVANA
+  results = db_select_from_table_where('parcels', 'shelf_selected', shelf_no)
+
+  for res in results:
+    parcel_id = res[0]
+    # Set the shelf_proposed and shelf_selected to 40000 to mark as "collected but not checked-out"
+    db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_NIRVANA, 'parcel_id', f'{parcel_id}')
+    db_update_column_for_record_where_column_has_value('parcels', 'shelf_selected', SHELF_NIRVANA, 'parcel_id', f'{parcel_id}')

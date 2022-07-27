@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 
 from urllib.parse import quote_plus, unquote_plus
 
+from collections import deque
+
 #plotting
 import base64
 import matplotlib.pyplot as plt
@@ -25,10 +27,8 @@ html_header = """<html>
 <head>
 <link rel="stylesheet" href="/static/styles/stylesheet.css">
 </head>"""
-#html_header = """<html>
-#   <head>
-#      <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
-#   </head>"""
+
+checkin_einheit_q = deque([], maxlen = 10)
 
 ###############################################################################
 # Routes
@@ -152,6 +152,10 @@ def new_parcel_post():
   ret = test_parcel_id_valid(parcel_id)
   if ret: return ret
 
+  # Test if parcel_id already exists. We can not allow duplicates!
+  ret = check_parcel_exists(parcel_id)
+  if ret: return f'<b>ERROR:</b> parcel already exists! We can not allow duplicates of the same parcel_id<br><br><a href="/newparcel">try again</a><br><a href="/mungg">home</a>'
+
   ret = db_insert_into_table('parcels',
           ['parcel_id', 'first_name', 'last_name', 'einheit_id', 'shelf_proposed', 'shelf_selected', 'dim_1', 'dim_2', 'dim_3', 'weight_g'],
           [f'"{parcel_id}"', f'"{first_name}"', f'"{last_name}"', f'"{einheit_id}"', f'{shelf_proposed}', f'{shelf_selected}', f'{dim_1}', f'{dim_2}', f'{dim_3}', f'{weight_g}'])
@@ -204,6 +208,29 @@ def new_parcel_quick_params_post(parcel_id):
   #return f'Added new parcel: parcel_id: {parcel_id} FirstName:{first_name} LastName: {last_name} einheit_id: {einheit_id} shelf_proposed: {shelf_proposed} shelf_selected: {shelf_selected} '\
   #              f'dim_1: {dim_1} dim_2: {dim_2} dim_3: {dim_3} weight_g: {weight_g}'
   return render_template('new-parcel-quick.html')
+
+# Search for a shelf
+@app.route('/search_shelf')
+def search_shelf():
+  return render_template('search-shelf.html')
+
+# Search for a parcel (after clicking SUBMIT)
+@app.route('/search_shelf', methods=['POST'])
+def search_shelf_post():
+  shelf_no = request.form.get('shelf_no')
+
+  # Test if shelf is valid
+  ret = test_shelf_no_valid(shelf_no)
+  if ret: return ret + f'<br><a href="/search_shelf">try again</a>'
+
+  return redirect(url_for('shelf',  shelf_no=f'{shelf_no}'))
+
+# Remove all parcels from this shelf
+@app.route('/shelf_empty_parcels/<shelf_no>')
+def emtpy_shelf(shelf_no):
+  shelf = int(shelf_no)
+  empty_parcels_in_shelf(shelf_no)
+  return redirect(url_for('search_shelf'))
 
 # Search for a parcel
 @app.route('/search/<parcel_id>')
@@ -344,18 +371,20 @@ def edit_parcel(parcel_id, first_name, last_name, einheit_id, shelf_proposed, sh
                                       dim_1 = dim_1_uq, dim_2 = dim_2_uq, dim_3 = dim_3_uq, weight_g = weight_g_uq)
 
 # Edit a parcel (after clicking SUBMIT)
-@app.route('/edit/<parcel_id>/<first_name>/<last_name>/<einheit_id>/<shelf_proposed>/<shelf_selected>/<dim_1>/<dim_2>/<dim_3>/<weight_g>', methods=['POST'])
-def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_proposed, shelf_selected, dim_1, dim_2, dim_3, weight_g):
-  parcel_id       = request.form.get('parcel_id')
-  first_name      = request.form.get('first_name')
-  last_name       = request.form.get('last_name')
-  einheit_id      = request.form.get('einheit_id')
-  shelf_proposed  = request.form.get('shelf_proposed')
-  shelf_selected  = request.form.get('shelf_selected')
-  dim_1           = request.form.get('dim_1')
-  dim_2           = request.form.get('dim_2')
-  dim_3           = request.form.get('dim_3')
-  weight_g        = request.form.get('weight_g')
+@app.route('/edit/<parcel_id_old>/<first_name_old>/<last_name_old>/<einheit_id_old>/<shelf_proposed_old>/<shelf_selected_old>/<dim_1_old>/<dim_2_old>/<dim_3_old>/<weight_g_old>', methods=['POST'])
+def edit_parcel_post(parcel_id_old, first_name_old, last_name_old, einheit_id_old, shelf_proposed_old, shelf_selected_old, dim_1_old, dim_2_old, dim_3_old, weight_g_old):
+  # Get new value from field or if none entered, keep old value from before
+  # Never save an empty field, this will cause problems with parametrized urls
+  parcel_id       = parcel_id_old # parcel id can not be changed. It is the main identifier of a parcel
+  first_name      = request.form.get('first_name')      or first_name_old
+  last_name       = request.form.get('last_name')       or last_name_old
+  einheit_id      = request.form.get('einheit_id')      or einheit_id_old
+  shelf_proposed  = request.form.get('shelf_proposed')  or shelf_proposed_old
+  shelf_selected  = request.form.get('shelf_selected')  or shelf_selected_old
+  dim_1           = request.form.get('dim_1')           or dim_1_old
+  dim_2           = request.form.get('dim_2')           or dim_2_old
+  dim_3           = request.form.get('dim_3')           or dim_3_old
+  weight_g        = request.form.get('weight_g')        or weight_g_old
 
   mydb = mysql.connector.connect(
     host="mysqldb",
@@ -736,8 +765,11 @@ def client_search():
 # Client search (after clicking SUBMIT)
 @app.route('/client_search', methods=['POST'])
 def client_search_post():
+  global checkin_einheit_q
   einheit_id = request.form.get('einheit_id')
+  checkin_einheit_q.append(einheit_id)
   # TODO: Check if einheit id is valid
+
   SHELF_MAX = 5000
 
   # Find all parcels for this einheit ID
@@ -809,11 +841,11 @@ def checkout_parcel_post(client_id):
   print(f'shelf_proposed={shelf_proposed} shelf_selected={shelf_selected}')
   if (shelf_proposed == 0):
     return f'ERROR: Parcel has not yet been processed!<br><br><a href="/checkout_parcel/{client_id}">try again</a>'
-  if (shelf_proposed == 50000):
+  if (shelf_proposed == 50000 or shelf_proposed == 40000):
     return f'ERROR: Parcel has already been checked out!<br><br><a href="/checkout_parcel/{client_id}">try again</a>'
   if (shelf_selected == 0):
     return f'ERROR: Parcel has not yet been sorted into shelf {shelf_proposed}!<br><br><a href="/checkout_parcel/{client_id}">try again</a>'
-  if (shelf_selected == 50000):
+  if (shelf_selected == 50000 or shelf_selected == 40000):
     return f'ERROR: Parcel has already been checked out!<br><br><a href="/checkout_parcel/{client_id}">try again</a>'
 
   # All checks have passed, the client can check out the parcel
@@ -836,6 +868,16 @@ def checkout_parcel_post(client_id):
   else:
     print("ERROR: Unknown submit name")
   return redirect(url_for('checkout'))
+
+@app.route('/checkin_einheit_log')
+def checkin_einheit_log():
+  global checkin_einheit_q, html_header
+  html = html_header + "<body>"
+  html += f'<title>ParcelSquirrel Checkin Log</title><meta http-equiv="refresh" content="5"><h1>Anzeige der lezten 10 Einheiten vom Checkin</h1>'
+  for einheit in checkin_einheit_q:
+    html += f'{einheit}<br>'
+  html += '</body></html>'
+  return html
 
 # List client log
 @app.route('/clientlog')
