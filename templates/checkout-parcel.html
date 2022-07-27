@@ -1,11 +1,25 @@
 <html>
 <head>
 <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $(window).keydown(function(event){
+            if(event.keyCode == 13) {
+                event.preventDefault();
+                return false;
+            }
+        });
+    });
+</script>
+
+
 </head>
 <body>
 <title>ParcelSquirrel Check-Out</title>
 <h1>Check-Out</h1>
-<h2>Alle Pakete scannen / Franz / Ital / Scan all parcels</h2>
+<h2>Alle Pakete scannen / Scannez tous les paquets</h2><br>
+<h2>Scansionare tutti i pacchetti / Scan all parcels</h2>
 <form method="POST">
     <p class="movaFormularTitel">Paket-ID:</p>
     <input class="movaFormular" name="parcel_id" autofocus>

@@ -1,23 +1,32 @@
 <html>
 <head>
 <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $(window).keydown(function(event){
+            if(event.keyCode == 13) {
+                event.preventDefault();
+                return false;
+            }
+        });
+    });
+</script>
 </head>
 <body>
 <title>BULA Post Sortier App - Add New Parcel</title>
 <h1>Manuallly add a parcel</h1>
 <form method="POST">
-    Parcel ID:<br>
-    <input name="parcel_id" value="990000000000000000"><br>
-    First Name:<br>
+    Parcel ID: (Example 990000000000000000)<br>
+    <input name="parcel_id"><br>
+    First & Last Name:<br>
     <input name="first_name"><br>
-    Last Name:<br>
-    <input name="last_name"><br>
     Einheit ID:<br>
     <input name="einheit_id"><br>
     Shelf Proposed:<br>
-    <input name="shelf_proposed"><br>
+    <input name="shelf_proposed" value="0"><br>
     Shelf Selected:<br>
-    <input name="shelf_selected"><br>
+    <input name="shelf_selected" value="0"><br>
     Width (cm):<br>
     <input name="width_cm"><br>
     Length (cm):<br>

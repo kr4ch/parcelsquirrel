@@ -14,6 +14,8 @@ SHELF_UNSORTED  = 0     # Virtual shelf to indicate new parcels that have not ye
 SHELF_COLLECTED = 50000 # Virtual shelf to indicate parcels that have already been collected
 # RESERVED SHELVES: 0,1,2,3,50000
 SHELF_1_LIST    = range(300,587)
+### Using chain we can concatenate ranges. But unfortunately it behaves unexpectedly different from a range. When accessing sometimes we have to redefine the global variable
+# !! When changing SHELF_2_LIST make sure to edit all instances in this file !!
 SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
 SHELF_2_LIST_MIN = min(SHELF_2_LIST)
 SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
@@ -415,10 +417,16 @@ def assign_shelf_to_new_parcels_fillup():
     print(f"working on einheit {einheit_id} with {len(subresults)} parcels")
 
     # Special case: all parcels for einheit "0" are NOT sorted into a shelf!
-    EINHEIT_EMPTY_LIST = ['0', 0]
+    EINHEIT_EMPTY_LIST = ['0', 0, 'nan', 'None']
     if str(einheit_id) in EINHEIT_EMPTY_LIST:
       # do nothing
-      continue # Sorted all parcels for einheit "empty"
+      continue # Skipped all parcels for einheit "empty"
+
+    # Do not assign einheit_id > 1100 to avoid mistakenly entered numbers
+    EINHEIT_MAX = 1100
+    if int(einheit_id) > EINHEIT_MAX:
+      # do nothing
+      continue # Skipped all parcels for invalid einheit_id
 
     # Special case: all parcels for einheit "rover" go into a special shelf
     EINHEIT_ROVER_LIST = ['rover', 'Rover', 'r', 'R']
@@ -435,7 +443,7 @@ def assign_shelf_to_new_parcels_fillup():
           assigned_count = assigned_count + 1
           assigned_parcel_id.append(str(parcel_id))
           assigned_shelf.append(str(SHELF_ROVER))
-      continue # Sorted all parcels for einheit "rover"
+      continue # Skipped all parcels for einheit "rover"
 
     # Special case: all parcels for einheit "bereich" go into a special shelf
     EINHEIT_BEREICH_LIST = ['bereich', 'Bereich', 'b', 'B']
@@ -452,7 +460,7 @@ def assign_shelf_to_new_parcels_fillup():
           assigned_count = assigned_count + 1
           assigned_parcel_id.append(str(parcel_id))
           assigned_shelf.append(str(SHELF_BEREICH))
-      continue # Sorted all parcels for einheit "bereich"
+      continue # Skipped all parcels for einheit "bereich"
 
   
     # General Idea:

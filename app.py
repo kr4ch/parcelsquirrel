@@ -23,8 +23,12 @@ app = Flask(__name__)
 last_change = '-'
 html_header = """<html>
 <head>
-<link rel="stylesheet" href="static/styles/stylesheet.css">
+<link rel="stylesheet" href="/static/styles/stylesheet.css">
 </head>"""
+#html_header = """<html>
+#   <head>
+#      <link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+#   </head>"""
 
 ###############################################################################
 # Routes
@@ -106,6 +110,7 @@ def shelf(shelf_no):
   html = get_shelf(shelf_no)
   return html
 
+###############################################################################
 # Initialize database (Deletes all existing records!) STEP 1
 @app.route('/resetonlyifyoureallyreallywant')
 def reset():
@@ -120,6 +125,7 @@ def initdb():
   db_init_table_client_log()
   last_change = "Initialized database!"
   return 'Re-initialized database<br><br><a href="/mungg">Back to start</a>'
+###############################################################################
 
 # Create new parcel by entering all data by hand
 @app.route('/newparcel')
@@ -131,16 +137,20 @@ def new_parcel():
 def new_parcel_post():
   global last_change
   # Variable        gets data from form                 or uses default value if form is empty
-  parcel_id       = request.form.get('parcel_id')       or '990123456789012345'
-  first_name      = request.form.get('first_name')      or 'Johnny'
-  last_name       = request.form.get('last_name')       or 'DropTables'
-  einheit_id      = request.form.get('einheit_id')      or '123ABC'
+  parcel_id       = request.form.get('parcel_id')       # Never use default value for parcel_id
+  first_name      = request.form.get('first_name')      or '-'
+  last_name       = request.form.get('last_name')       or '-'
+  einheit_id      = request.form.get('einheit_id')      or '0'
   shelf_proposed  = request.form.get('shelf_proposed')  or '0'
   shelf_selected  = request.form.get('shelf_selected')  or '0'
-  dim_1           = request.form.get('dim_1')           or '500'
-  dim_2           = request.form.get('dim_2')           or '800'
-  dim_3           = request.form.get('dim_3')           or '300'
+  dim_1           = request.form.get('dim_1')           or '100'
+  dim_2           = request.form.get('dim_2')           or '100'
+  dim_3           = request.form.get('dim_3')           or '100'
   weight_g        = request.form.get('weight_g')        or '500'
+
+  # Test if data is valid. Eg. if parcel_id is correct format
+  ret = test_parcel_id_valid(parcel_id)
+  if ret: return ret
 
   ret = db_insert_into_table('parcels',
           ['parcel_id', 'first_name', 'last_name', 'einheit_id', 'shelf_proposed', 'shelf_selected', 'dim_1', 'dim_2', 'dim_3', 'weight_g'],
@@ -387,7 +397,10 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
   print(record)
 
   cursor.close()
-  return f'SUCCESS! Edited: {record}<br><br><a href="/search_no_id">Search</a><br><br><a href="/mungg">Home</a>'
+  
+  global html_header
+  html = html_header + f'<body>SUCCESS! Edited: {record}<br><br><a href="/search_no_id" class="movaButton" autofocus>Search</a><br><br><a href="/mungg" class="movaButton">Home</a></body></html>'
+  return html
 
 
 # Search and edit only einheit id
@@ -454,6 +467,9 @@ def edit_parcel_change_id(parcel_id, einheit_id):
 def edit_parcel_post_change_id(parcel_id, einheit_id_old):
   # Get new einheit id OR set einheit_id_old if none given
   einheit_id      = request.form.get('einheit_id')    or einheit_id_old
+
+  if int(einheit_id) < 0 or int(einheit_id) > 1100:
+    return f'<b>ERROR:</b> Invalid einheit_id: {einheit_id}. Must be between 0 and 1100. <a href="\search_change_id">try again</a>'
 
   mydb = mysql.connector.connect(
     host="mysqldb",
@@ -743,7 +759,7 @@ def client_search_post():
       if shelf_selected == 0:
         unsorted_parcels += 1
         if unsorted_parcels < 2:
-          html += "Some parcels have not yet been sorted. Please come back later<br>"
+          html += "Some parcels have not yet been sorted. Please come back later<br><br>"
       # Report a shelf only once
       elif shelf_list.count(shelf_selected) == 1 and shelf_selected < SHELF_MAX:
         html += f'Shelf #{shelf_selected}<br>'
@@ -816,7 +832,7 @@ def checkout_parcel_post(client_id):
     return redirect(url_for('checkout_parcel', client_id=client_id))
   elif request.form['action'] == 'Done':
     global html_header
-    return html_header + "\n<title>ParcelSquirrel Check-Out</title><h1>Danke</h1>\n" + '<p class="movaFormularTitel">Finished checking out parcels:</p><br><a href="/checkout" class="movaButton">Restart</a></body></html>'
+    return html_header + "\n<title>ParcelSquirrel Check-Out</title><h1>Danke / Merci / Grazie / Grazia</h1>\n" + '<p class="movaFormularTitel">Finished checking out parcels</p><br><a href="/checkout" class="movaButton">Restart</a></body></html>'
   else:
     print("ERROR: Unknown submit name")
   return redirect(url_for('checkout'))
