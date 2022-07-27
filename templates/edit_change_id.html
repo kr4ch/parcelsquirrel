@@ -1,0 +1,16 @@
+<html>
+<head>
+<link rel="stylesheet" href="{{ url_for('static',filename='styles/stylesheet.css') }}">
+</head>
+<body>
+<title>BULA Post Sortier App - Edit Parcel</title>
+<h1>Edit Einheit for parcel: {{parcel_id}}</h1>
+<form method="POST">
+    Einheit ID: (OLD={{einheit_id}})<br>
+    <input name="einheit_id" autofocus><br>
+    <br>
+    <input type="submit">
+</form>
+<br><br><a href="/mungg">Back to start</a>
+</body>
+</html>

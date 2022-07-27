@@ -389,6 +389,107 @@ def edit_parcel_post(parcel_id, first_name, last_name, einheit_id, shelf_propose
   cursor.close()
   return f'SUCCESS! Edited: {record}<br><br><a href="/search_no_id">Search</a><br><br><a href="/mungg">Home</a>'
 
+
+# Search and edit only einheit id
+@app.route('/search_change_id')
+def search_change_id():
+  return render_template('search.html')
+
+# Search and edit only einheit id (after clicking SUBMIT)
+@app.route('/search_change_id', methods=['POST'])
+def search_parcel_change_id_post():
+  parcel_id = request.form.get('parcel_id')
+
+  # Test if data is valid. Eg. if parcel_id is correct format
+  ret = test_parcel_id_valid(parcel_id)
+  if ret: return ret + '<br><br><a href="/search_change_id">Search</a>'
+
+  mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="secret",
+    database="inventory"
+  )
+  cursor = mydb.cursor()
+
+  if not checkTableExists(mydb, "parcels"):
+      return f'ERROR: table "parcels" does not exist!'
+
+  # Check if we have a parcel in our table that matches parcel_id
+  sql_cmd = f"SELECT * FROM parcels WHERE parcel_id = '{parcel_id}'"
+  print(sql_cmd)
+  cursor.execute(sql_cmd)
+
+  print(f"DBG: cursor={cursor}")
+
+  row = cursor.fetchone()
+  if row == None:
+    print(f'ERROR: Unable to find parcel with id {parcel_id}')
+    return f'<b>ERROR: Unable to find parcel with id {parcel_id}</b><br><a href="/search_change_id">Search</a>"'
+
+  for row in cursor:
+    print(f"* {row}")
+    #TODO: Test if multiple parcels match the searched id!
+
+  # Get the values for the different columns. Make them safe for a URL with quote_plus. For example "/" can not be passed!
+  parcel_id       = quote_plus(str(row[0]))
+  einheit_id      = quote_plus(str(row[3]))
+
+  cursor.close()
+
+  return redirect(url_for('edit_parcel_change_id',  parcel_id=f'{parcel_id}', einheit_id=f'{einheit_id}'))
+
+
+# Edit a parcel
+@app.route('/edit_change_id/<parcel_id>/<einheit_id>/')
+def edit_parcel_change_id(parcel_id, einheit_id):
+  # Remove quotes from making strings URL safe:
+  parcel_id_uq       = unquote_plus(str(parcel_id))
+  einheit_id_uq      = unquote_plus(str(einheit_id))
+
+  return render_template('edit_change_id.html', parcel_id = parcel_id_uq, einheit_id = einheit_id_uq)
+
+# Edit a parcel (after clicking SUBMIT)
+@app.route('/edit_change_id/<parcel_id>/<einheit_id_old>/', methods=['POST'])
+def edit_parcel_post_change_id(parcel_id, einheit_id_old):
+  # Get new einheit id OR set einheit_id_old if none given
+  einheit_id      = request.form.get('einheit_id')    or einheit_id_old
+
+  mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="secret",
+    database="inventory"
+  )
+  cursor = mydb.cursor()
+
+  if not checkTableExists(mydb, "parcels"):
+      return f'ERROR: table "parcels" does not exist!'
+
+  # Check if we have a parcel in our table that matches parcel_id
+  sql_select_cmd = f"SELECT * FROM parcels WHERE parcel_id = '{parcel_id}'"
+  print(sql_select_cmd)
+  cursor.execute(sql_select_cmd)
+  record = cursor.fetchone()
+  print(f"EDITING {record}")
+
+  # Update this single record
+  sql_update_cmd = f'UPDATE parcels SET '\
+                      f'einheit_id = "{einheit_id}" '\
+                    f'WHERE parcel_id = "{parcel_id}"'
+  print(sql_update_cmd)
+  cursor.execute(sql_update_cmd)
+  mydb.commit()
+
+  # Test if it worked
+  cursor.execute(sql_select_cmd)
+  record = cursor.fetchone()
+  print(record)
+
+  cursor.close()
+  
+  return redirect(url_for('search_change_id'))
+
 #############################################
 # Upload / Download / Export Functionality
 #############################################
