@@ -431,6 +431,34 @@ def db_count_entries_where_and(table, where_col, where_val, where_col2, where_va
 
   return count
 
+def db_count_entries_where_or(table, where_col, where_val, where_col2, where_val2):
+  """
+  Counts the number of entries that fit a certain condition (where_col has value where_val)
+  OR a second contition (where_col2 has value where_val2).
+  Returns: number of entries that fit condition or 0 if unable to find table
+  """
+  mydb = mysql.connector.connect(
+    host="mysqldb",
+    user="root",
+    password="secret",
+    database="inventory"
+  )
+  cursor = mydb.cursor()
+
+  if not checkTableExists(mydb, str(table)):
+      print(f'ERROR: table f"{table}" does not exist!')
+      return 0
+
+  sql_cmd = f"SELECT * FROM {table} WHERE {where_col} = '{str(where_val)}' OR {where_col2} = '{str(where_val2)}'"
+  cursor.execute(sql_cmd)
+  
+  results = cursor.fetchall()
+  count = len(results)
+
+  cursor.close()
+
+  return count
+
 def db_count_entries_where_not(table, where_col, where_val):
   """
   Counts the number of entries that DO NOT fit a certain condition (where_col has NOT value where_val).
