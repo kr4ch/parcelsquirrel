@@ -219,9 +219,9 @@ def search_shelf():
 def search_shelf_post():
   shelf_no = request.form.get('shelf_no')
 
-  # Test if shelf is valid
-  ret = test_shelf_no_valid(shelf_no)
-  if ret: return ret + f'<br><a href="/search_shelf">try again</a>'
+#  # Test if shelf is valid
+#  ret = test_shelf_no_valid(shelf_no)
+#  if ret: return ret + f'<br><a href="/search_shelf">try again</a>'
 
   return redirect(url_for('shelf',  shelf_no=f'{shelf_no}'))
 

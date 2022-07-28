@@ -17,12 +17,12 @@ SHELF_COLLECTED = 50000 # Virtual shelf to indicate parcels that have already be
 SHELF_1_LIST    = range(300,587)
 ### Using chain we can concatenate ranges. But unfortunately it behaves unexpectedly different from a range. When accessing sometimes we have to redefine the global variable
 # !! When changing SHELF_2_LIST make sure to edit all instances in this file !!
-SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
 SHELF_2_LIST_MIN = min(SHELF_2_LIST)
-SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
 SHELF_2_LIST_MAX = max(SHELF_2_LIST)
-SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
-SHELF_3_LIST    = range(100,249)
+SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
+SHELF_3_LIST    = range(100,250)
 
 
 # Conservatism of the fillup sorting algorithm:
@@ -73,7 +73,7 @@ def get_dim_of_shelf(shelf_number):
   Returns the dimension of a shelf (30,45 or 90). If the requested number if not known returns -1
   """
   global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_3_LIST
-  SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+  SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
   if shelf_number in SHELF_1_LIST:
     return SHELF_1_DIM
   elif shelf_number in SHELF_2_LIST:
@@ -250,7 +250,8 @@ def get_shelf(shelf_no):
   html = html_header
   html += '<body><h1>Shelf Overview</h1><a href="/mungg">Back to start</a><br><a href="/shelves">Back to shelf overview</a><br>'
   html += f'<h2>Shelf #{shelf}</h2>'
-  html += f'<table><tr><th>Width</th><td>{int(shelf_dim/10)} cm</td></tr>'
+  #html += f'<table><tr><th>Width</th><td>{int(int(shelf_dim)/10)} cm</td></tr>'
+  html += f'<table>'
   html += f'<tr><th>Height</th><td>{int(SHELF_HEIGHT/10)} cm</td></tr>'
   html += f'<tr><th>Number of Parcels</th><td>{parcel_count}</td></tr>'
   html += f'<tr></tr>'
@@ -640,7 +641,7 @@ def assign_shelf_to_new_parcels_fillup():
 
       # We got here because there are no more shelves available (all are filled)
       # Try to fill smaller shelves
-      SHELF_2_LIST    = chain(range(800,911), range(588,634), range(912,939), range(1000,1030), range(2000,2080))
+      SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
       
       print(f"WARNING: All shelves of the requested type are filled up! Trying to fill parcels for einheit {einheit_id} into other shelves")
 
@@ -689,20 +690,20 @@ def assign_shelf_to_new_parcels_fillup():
                 assigned_count = assigned_count + 1
                 assigned_parcel_id.append(str(parcel_id))
                 assigned_shelf.append(str(shelf_no))
-            else:            
-              # if too big, then put in shelf 3
-              # If no more space, stop trying to fit parcels into this shelf
-              print(f"No more space left in shelf {shelf_no}. Parcel {parcel_id} will be sorted into shelf 3")
-              # parcel is too big for 90cm shelf, sort it into a special shelf
-              SHELF_TOO_LARGE = 3
-              ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_TOO_LARGE, 'parcel_id', parcel_id)
-              if not ret:
-                print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
-              else:
-                assigned_count = assigned_count + 1
-                assigned_parcel_id.append(str(parcel_id))
-                assigned_shelf.append(str(SHELF_ROVER))
-              break
+#            else:            
+#              # if too big, then put in shelf 3
+#              # If no more space, stop trying to fit parcels into this shelf
+#              print(f"No more space left in shelf {shelf_no}. Parcel {parcel_id} will be sorted into shelf 3")
+#              # parcel is too big for 90cm shelf, sort it into a special shelf
+#              SHELF_TOO_LARGE = 3
+#              ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_TOO_LARGE, 'parcel_id', parcel_id)
+#              if not ret:
+#                print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+#              else:
+#                assigned_count = assigned_count + 1
+#                assigned_parcel_id.append(str(parcel_id))
+#                assigned_shelf.append(str(SHELF_ROVER))
+#              break
           
 
 
