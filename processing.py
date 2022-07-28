@@ -24,12 +24,18 @@ SHELF_2_LIST_MAX = max(SHELF_2_LIST)
 SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
 SHELF_3_LIST    = range(100,250)
 
+SHELF_ROVER    = 1 # Special shelf to collect all parcels for einheit "Rover"
+SHELF_BEREICH  = 2 # Special shelf to collect all parcels for einheit "Bereich"
+SHELF_OVERFLOW = 3 # Special (large!) shelf to collect overflow
+SHELF_TOFIX    = 4 # Special shelf for parcels that need to be fixed manually (eg. invalid einheit entered)
+
+EINHEIT_VALID_RANGE = range(0,1101) # 0..1100 are supposed to be valid einheit IDs, including 0 for "unassigned"
 
 # Conservatism of the fillup sorting algorithm:
 PARCEL_AREA_RESERVE = 0.8                   # We need this factor more area in a shelf. Can be changed to set how "conservative" to fill the shelves. Greater than 1 is conservative. Less than 1 is "optimistic"
 REQ_SHELF_AREA      = 1/PARCEL_AREA_RESERVE # Shelf must be no more full than this to be considered for putting more parcels in
 
-SHELF_MAX = 5000 # Maximum number of shelves
+SHELF_MAX = 5000 # Maximum number of shelves that can ever exist physically
 
 html_header = """<html>
 <head>
@@ -431,15 +437,9 @@ def assign_shelf_to_new_parcels_fillup():
       # do nothing
       continue # Skipped all parcels for einheit "empty"
 
-    # Do not assign einheit_id > 1100 to avoid mistakenly entered numbers
-    EINHEIT_MAX = 1100
-    if int(einheit_id) > EINHEIT_MAX:
-      # do nothing
-      continue # Skipped all parcels for invalid einheit_id
-
     # Special case: all parcels for einheit "rover" go into a special shelf
     EINHEIT_ROVER_LIST = ['rover', 'Rover', 'r', 'R']
-    SHELF_ROVER        = 1
+    global SHELF_ROVER
     if str(einheit_id) in EINHEIT_ROVER_LIST:
       for row in subresults:
         parcel_id = row[0]
@@ -452,11 +452,11 @@ def assign_shelf_to_new_parcels_fillup():
           assigned_count = assigned_count + 1
           assigned_parcel_id.append(str(parcel_id))
           assigned_shelf.append(str(SHELF_ROVER))
-      continue # Skipped all parcels for einheit "rover"
+      continue # Sorted all parcels for einheit "rover"
 
     # Special case: all parcels for einheit "bereich" go into a special shelf
     EINHEIT_BEREICH_LIST = ['bereich', 'Bereich', 'b', 'B']
-    SHELF_BEREICH        = 2
+    global SHELF_BEREICH
     if str(einheit_id) in EINHEIT_BEREICH_LIST:
       for row in subresults:
         parcel_id = row[0]
@@ -469,8 +469,42 @@ def assign_shelf_to_new_parcels_fillup():
           assigned_count = assigned_count + 1
           assigned_parcel_id.append(str(parcel_id))
           assigned_shelf.append(str(SHELF_BEREICH))
-      continue # Skipped all parcels for einheit "bereich"
+      continue # Sorted all parcels for einheit "bereich"
 
+    # Special case: all parcels for unknown einheit (eg. 'XY') go on a special shelf to be fixed manually
+    # This is determined if they are not an integer and have not been handled above (eg. rover or bereich)
+    global SHELF_TOFIX
+    if not einheit_id.isnumeric():
+      print(f"DBG: found einheit {einheit_id} has unknown einheit (not rover, not bereich and non-integer)")
+      for row in subresults:
+        parcel_id = row[0]
+        print(f"Sorting parcel {parcel_id} for einheit {einheit_id} into shelf {SHELF_TOFIX}")
+        # Update the parcels shelf_proposed and add them to assigned_count, assigned_parcel_id, assigned_shelf
+        ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_TOFIX, 'parcel_id', parcel_id)
+        if not ret:
+          print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+        else:
+          assigned_count = assigned_count + 1
+          assigned_parcel_id.append(str(parcel_id))
+          assigned_shelf.append(str(SHELF_TOFIX))
+      continue # Sorted all parcels with unknown bereich
+
+    # Special case: einheit_id must be in range to be valid, else  sort it out to be fixed manually
+    global EINHEIT_VALID_RANGE
+    if not int(einheit_id) in EINHEIT_VALID_RANGE:
+      print(f"DBG: found einheit {einheit_id} out of valid range")
+      for row in subresults:
+        parcel_id = row[0]
+        print(f"Sorting parcel {parcel_id} for einheit {einheit_id} into shelf {SHELF_TOFIX}")
+        # Update the parcels shelf_proposed and add them to assigned_count, assigned_parcel_id, assigned_shelf
+        ret = db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_TOFIX, 'parcel_id', parcel_id)
+        if not ret:
+          print(f"ERROR: Unable to change shelf_proposed for parcel_id {parcel_id}")
+        else:
+          assigned_count = assigned_count + 1
+          assigned_parcel_id.append(str(parcel_id))
+          assigned_shelf.append(str(SHELF_TOFIX))
+      continue # Sorted all parcels with bereich out of range
   
     # General Idea:
     ## 1. Ignore the highest dimension for every parcel (long parcels will stick out of a shelf)
@@ -949,3 +983,14 @@ def empty_parcels_in_shelf(shelf_no):
     # Set the shelf_proposed and shelf_selected to 40000 to mark as "collected but not checked-out"
     db_update_column_for_record_where_column_has_value('parcels', 'shelf_proposed', SHELF_NIRVANA, 'parcel_id', f'{parcel_id}')
     db_update_column_for_record_where_column_has_value('parcels', 'shelf_selected', SHELF_NIRVANA, 'parcel_id', f'{parcel_id}')
+
+# delete duplicates of parcels
+def delete_duplicates_parcel(parcel_id):
+  count = db_count_entries_where("parcels", "parcel_id", parcel_id)
+  db_delete_from_table_where('parcels', 'parcel_id', parcel_id)
+
+  html = f"Total {count} Duplikate von Paket {parcel_id} gelöscht.<br>Vergiss nicht das Paket neu zu erfassen!"
+  return html
+
+def get_duplicates_parcel_id():
+  ret = db_get_duplicates("parcels", "parcel_id")

@@ -28,7 +28,9 @@ html_header = """<html>
 <link rel="stylesheet" href="/static/styles/stylesheet.css">
 </head>"""
 
-checkin_einheit_q = deque([], maxlen = 10)
+# List of einheit id genereated at Checkin
+checkin_einheit_q = deque([], maxlen = 15)
+checkin_einheit_changed = False
 
 ###############################################################################
 # Routes
@@ -768,6 +770,7 @@ def client_search_post():
   global checkin_einheit_q
   einheit_id = request.form.get('einheit_id')
   checkin_einheit_q.append(einheit_id)
+  checkin_einheit_changed = True
   # TODO: Check if einheit id is valid
 
   SHELF_MAX = 5000
@@ -871,13 +874,40 @@ def checkout_parcel_post(client_id):
 
 @app.route('/checkin_einheit_log')
 def checkin_einheit_log():
-  global checkin_einheit_q, html_header
-  html = html_header + "<body>"
+  global checkin_einheit_q, html_header, checkin_einheit_changed
+  # TODO: Changing color of background if new einheit detected, does not work!
+  if checkin_einheit_changed:
+    html = html_header + '<body style="background-color:orange;">'
+  else:
+    html = html_header + '<body>'
   html += f'<title>ParcelSquirrel Checkin Log</title><meta http-equiv="refresh" content="5"><h1>Anzeige der lezten 10 Einheiten vom Checkin</h1>'
+  
   for einheit in checkin_einheit_q:
     html += f'{einheit}<br>'
   html += '</body></html>'
   return html
+
+# Delete duplicates of parcels
+@app.route('/delete_duplicates')
+def delete_duplicates():
+  return render_template('search.html')
+
+# Delete duplicates of parcels (after clicking SUBMIT)
+@app.route('/delete_duplicates', methods=['POST'])
+def delete_duplicates_post():
+  parcel_id = request.form.get('parcel_id')
+
+  # Test if data is valid. Eg. if parcel_id is correct format
+  ret = test_parcel_id_valid(parcel_id)
+  if ret: return ret
+
+  ret = delete_duplicates_parcel(parcel_id)
+  ret += '<br><br><a href="/delete_duplicates">delete more duplicates</a><br><br><a href="/newparcel">enter new parcel</a><br><br><a href="/mungg">home</a>'
+  return ret
+
+@app.route('/show_duplicates')
+def show_duplicates():
+  ret = get_duplicates_parcel_id()
 
 # List client log
 @app.route('/clientlog')
