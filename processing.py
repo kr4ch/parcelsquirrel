@@ -103,16 +103,27 @@ def get_shelves():
   """
   Returns a HTML overview of all shelves and the parcels in them
   """
-  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST, SHELF_HEIGHT
+  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_3_LIST, SHELF_HEIGHT
+  SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
 
   parcels_count_in_shelves_30 = db_count_entries_where_in_range('parcels', 'shelf_selected', min(SHELF_1_LIST), max(SHELF_1_LIST))
   parcels_count_in_shelves_45 = db_count_entries_where_in_range('parcels', 'shelf_selected', SHELF_2_LIST_MIN, SHELF_2_LIST_MAX)
   parcels_count_in_shelves_90 = db_count_entries_where_in_range('parcels', 'shelf_selected', min(SHELF_3_LIST), max(SHELF_3_LIST))
+  parcels_count_in_shelf_1 =    db_count_entries_where('parcels', 'shelf_selected', 1)
+  parcels_count_in_shelf_2 =    db_count_entries_where('parcels', 'shelf_selected', 2)
+  parcels_count_in_shelf_3 =    db_count_entries_where('parcels', 'shelf_selected', 3)
+  parcels_count_in_shelf_4 =    db_count_entries_where('parcels', 'shelf_selected', 4)
 
   global html_header
   html = html_header_simple
-  html += '<body><h1>Overview Parcels sorted into Shelves</h1><a href="/mungg">Back to start</a><br>'
-  html += f'<table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
+  html += '<body><h1>Overview Parcels sorted into Shelves</h1><a href="/mungg">Back to start</a><br><br>'
+  html+= '<table>'
+  html += f'<tr><th>Shelf 1 (Rover):</th><td>{parcels_count_in_shelf_1} Parcels</td></tr>'
+  html += f'<tr><th>Shelf 2 (Bereich):</th><td>{parcels_count_in_shelf_2} Parcels</td></tr>'
+  html += f'<tr><th>Shelf 3 (Overflow):</th><td>{parcels_count_in_shelf_3} Parcels</td></tr>'
+  html += f'<tr><th>Shelf 4 (Parcel-Clinic):</th><td>{parcels_count_in_shelf_4} Parcels</td></tr>'
+  html += '</table><br>'
+  html += f'<br><table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
   html += f'<tr><th>{parcels_count_in_shelves_30} Parcels</th><th>{parcels_count_in_shelves_45} Parcels</th><th>{parcels_count_in_shelves_90} Parcels</th></tr>'
   html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {SHELF_2_LIST_MIN} - {SHELF_2_LIST_MAX}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
 
@@ -172,16 +183,27 @@ def get_shelves_proposed():
   """
   Returns a HTML overview of all shelves and the parcels in them
   """
-  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_2_LIST, SHELF_3_LIST, SHELF_HEIGHT
+  global SHELF_1_DIM, SHELF_2_DIM, SHELF_3_DIM, SHELF_1_LIST, SHELF_3_LIST, SHELF_HEIGHT
+  SHELF_2_LIST    = chain(range(800,911), range(587,634), range(912,939), range(1000,1030), range(2000,2080))
 
   parcels_count_in_shelves_30 = db_count_entries_where_in_range('parcels', 'shelf_proposed', min(SHELF_1_LIST), max(SHELF_1_LIST))
   parcels_count_in_shelves_45 = db_count_entries_where_in_range('parcels', 'shelf_proposed', SHELF_2_LIST_MIN, SHELF_2_LIST_MAX)
   parcels_count_in_shelves_90 = db_count_entries_where_in_range('parcels', 'shelf_proposed', min(SHELF_3_LIST), max(SHELF_3_LIST))
+  parcels_count_in_shelf_1 =    db_count_entries_where('parcels', 'shelf_proposed', 1)
+  parcels_count_in_shelf_2 =    db_count_entries_where('parcels', 'shelf_proposed', 2)
+  parcels_count_in_shelf_3 =    db_count_entries_where('parcels', 'shelf_proposed', 3)
+  parcels_count_in_shelf_4 =    db_count_entries_where('parcels', 'shelf_proposed', 4)
 
   global html_header
   html = html_header_simple
   html += '<body><h1>Overview Parcels assigned (not sorted!) into shelves</h1><a href="/mungg">Back to start</a><br>'
-  html += f'<table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
+  html+= '<table>'
+  html += f'<tr><th>Shelf 1 (Rover):</th><td>{parcels_count_in_shelf_1} Parcels</td></tr>'
+  html += f'<tr><th>Shelf 2 (Bereich):</th><td>{parcels_count_in_shelf_2} Parcels</td></tr>'
+  html += f'<tr><th>Shelf 3 (Overflow):</th><td>{parcels_count_in_shelf_3} Parcels</td></tr>'
+  html += f'<tr><th>Shelf 4 (Parcel-Clinic):</th><td>{parcels_count_in_shelf_4} Parcels</td></tr>'
+  html += '</table><br>'
+  html += f'<br><table><tr><th>Shelves 30cm</th><th>Shelves 45cm</th><th>Shelves 90cm</th></tr>'
   html += f'<tr><th>{parcels_count_in_shelves_30} Parcels</th><th>{parcels_count_in_shelves_45} Parcels</th><th>{parcels_count_in_shelves_90} Parcels</th></tr>'
   html += f'<tr><th>No. {min(SHELF_1_LIST)} - {max(SHELF_1_LIST)}</th><th>No. {SHELF_2_LIST_MIN} - {SHELF_2_LIST_MAX}</th><th>No. {min(SHELF_3_LIST)} - {max(SHELF_3_LIST)}</th></tr>'
 
